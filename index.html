@@ -683,14 +683,14 @@
         import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // โครงสร้าง Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyBl9Sd4w3Rv74qXi2AyijZa8XyDQQ6gJsQ",
-            authDomain: "finflow-expense.firebaseapp.com",
-            projectId: "finflow-expense",
-            storageBucket: "finflow-expense.firebasestorage.app",
-            messagingSenderId: "670726363251",
-            appId: "1:670726363251:web:802f743373e7204fe4f206"
-        };
+     const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'finflow-expense';
         const configToUse = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
