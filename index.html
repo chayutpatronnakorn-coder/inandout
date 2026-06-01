@@ -682,15 +682,23 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // โครงสร้าง Firebase Config
-     const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
+        // =========================================================================
+        // ⚠️ [สำคัญมาก!] ขั้นตอนการแก้ไขเพื่อเชื่อมต่อฐานข้อมูลของคุณเอง:
+        // 
+        // 1. เข้าไปที่ Firebase Console (https://console.firebase.google.com/)
+        // 2. คลิกปุ่มฟันเฟือง (Settings) ที่มุมบนซ้าย > เลือก "Project Settings"
+        // 3. เลื่อนลงมาด้านล่างสุดในหัวข้อ "Your apps" (แอปของคุณ)
+        // 4. คัดลอกออบเจกต์ config ของคุณ แล้ววางเขียนทับ (Replace) ในบรรทัดที่ 468 - 475 ด้านล่างนี้ทั้งหมด
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBl9Sd4w3Rv74qXi2AyijZa8XyDQQ6gJsQ",
+            authDomain: "finflow-expense.firebaseapp.com",
+            projectId: "finflow-expense",
+            storageBucket: "finflow-expense.firebasestorage.app",
+            messagingSenderId: "670726363251",
+            appId: "1:670726363251:web:802f743373e7204fe4f206"
+        };
+        // =========================================================================
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'finflow-expense';
         const configToUse = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
@@ -785,6 +793,8 @@
                 console.error("Google sign in failure:", err);
                 if (err.code === "auth/popup-blocked") {
                     showToast("❌ เบราว์เซอร์บล็อกป๊อปอัป! กรุณาเปิดป๊อปอัปเพื่อลงชื่อเข้าใช้งาน", "error");
+                } else if (err.code === "auth/api-key-not-valid") {
+                    showToast("❌ ล็อกอินล้มเหลว: API Key ในไฟล์โค้ดไม่ตรงกับระบบโปรเจกต์ของคุณ กรุณาเปลี่ยน firebaseConfig", "error");
                 } else if (err.code === "auth/iframe-userAgent-auth-not-supported-by-environment" || err.code === "auth/operation-not-allowed") {
                     showToast("⚠️ ระบบพรีวิว Sandbox บล็อกการเปิดเชื่อม Google ด่วน กรุณานำเว็บขึ้นระบบจริง (Hosting) เพื่อทดสอบ Gmail", "error");
                 } else {
