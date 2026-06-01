@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบันทึกรายรับ-รายจ่ายอัจฉริยะ & พอร์ตการลงทุน FinFlow</title>
-    <!-- Tailwind CSS สำหรับการออกแบบ UI ที่สวยงามและรองรับมือถืออย่างสมบูรณ์ -->
+    <title>FinFlow - ระบบบันทึกการเงิน & พอร์ตลงทุนอัจฉริยะ ซิงค์คลาวด์</title>
+    <!-- Tailwind CSS สำหรับดีไซน์หรูหราพรีเมียมและรองรับทุกอุปกรณ์ -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js สำหรับแสดงกราฟวิเคราะห์รายจ่าย -->
+    <!-- Chart.js สำหรับการแสดงผลกราฟประมวลผลทางการเงิน -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Google Fonts - Prompt -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,6 @@
         body {
             font-family: 'Prompt', sans-serif;
         }
-        /* Custom scrollbar สำหรับตาราง */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -35,63 +34,95 @@
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 pb-12">
 
+    <!-- แถบแจ้งเตือนเมื่อยังไม่ได้ล็อกอินด้วย Google (ซิงค์ข้ามเครื่องไม่ได้) -->
+    <div id="anonymous-warning-banner" class="hidden bg-amber-500 text-white text-xs sm:text-sm py-2 px-4 text-center font-medium relative transition-all duration-300">
+        <span>⚠️ คุณกำลังใช้งานโหมดออฟไลน์ชั่วคราว ข้อมูลจะไม่ซิงค์ข้ามเครื่อง กรุณากด <b>"เข้าสู่ระบบด้วย Google"</b> ที่มุมขวาบนเพื่อซิงค์ข้อมูลกับคอมพิวเตอร์และมือถือของคุณ</span>
+    </div>
+
     <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <div class="flex items-center gap-3">
-                    <div class="bg-emerald-500 text-white p-2 rounded-xl shadow-md shadow-emerald-200">
+            <div class="flex justify-between h-20 items-center gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="bg-emerald-500 text-white p-2.5 rounded-xl shadow-md shadow-emerald-200 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <span class="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">FinFlow</span>
-                    <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-medium">บันทึกรายรับ-รายจ่าย & พอร์ตหุ้น</span>
+                    <div class="truncate">
+                        <span class="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent block">FinFlow</span>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">คลาวด์ซิงค์เรียลไทม์</span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <!-- ซ่อนไฟล์อินพุตสำหรับเปิดโฟลเดอร์นำเข้าข้อมูล -->
-                    <input type="file" id="import-csv-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
-                    
-                    <!-- ปุ่มนำเข้าข้อมูล -->
-                    <button onclick="triggerCSVImport()" class="text-xs sm:text-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-lg font-medium transition duration-200 flex items-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        <span class="hidden sm:inline">นำเข้า CSV</span>
-                    </button>
-                    
-                    <!-- ปุ่มส่งออกข้อมูล -->
-                    <button onclick="exportData('csv')" class="text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-medium transition duration-200 flex items-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        <span class="hidden sm:inline">ส่งออก CSV</span>
-                    </button>
-                    
+
+                <!-- ส่วนแสดงผลระบบล็อกอินและจัดการข้อมูล -->
+                <div class="flex items-center gap-3 flex-shrink-0">
                     <!-- ปุ่มล้างข้อมูลทั้งหมด -->
-                    <button onclick="openClearModal()" class="text-xs sm:text-sm bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-lg font-medium transition duration-200 flex items-center gap-1.5">
+                    <button onclick="openClearModal()" class="hidden md:flex text-xs bg-rose-50 border border-rose-100 hover:bg-rose-100 text-rose-600 px-3 py-2.5 rounded-xl font-semibold transition duration-150 items-center gap-1.5" title="ล้างข้อมูลคลาวด์ทั้งหมด">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        <span class="hidden sm:inline">ล้างข้อมูล</span>
+                        <span>ล้างข้อมูล</span>
+                    </button>
+
+                    <!-- วิดเจ็ตแสดงข้อมูลผู้ใช้ล็อกอินสำเร็จ -->
+                    <div id="user-profile-card" class="hidden flex items-center gap-2.5 bg-slate-50 border border-slate-100 p-1.5 pr-3 rounded-2xl">
+                        <img id="user-avatar" src="" alt="Google Profile" class="w-9 h-9 rounded-full border border-slate-200">
+                        <div class="hidden lg:block text-left">
+                            <div id="user-display-name" class="text-xs font-bold text-slate-800 truncate max-w-[120px]">กำลังโหลด...</div>
+                            <div id="user-email" class="text-[10px] text-slate-400 truncate max-w-[120px]">กำลังโหลด...</div>
+                        </div>
+                        <button onclick="handleSignOut()" class="text-[11px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1.5 rounded-lg font-semibold transition">
+                            ออกจากระบบ
+                        </button>
+                    </div>
+
+                    <!-- ปุ่มล็อกอิน Google สำหรับผู้ยังไม่ได้ล็อกอิน -->
+                    <button id="google-login-btn" onclick="handleGoogleSignIn()" class="bg-slate-900 hover:bg-slate-800 text-white px-3 py-2.5 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition duration-200 flex items-center gap-2 shadow-md shadow-slate-200">
+                        <svg class="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                        </svg>
+                        <span class="hidden sm:inline">เข้าสู่ระบบด้วย Google</span>
+                        <span class="inline sm:hidden">ล็อกอิน Google</span>
                     </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         
-        <!-- แท็บสำหรับสลับหน้าแดชบอร์ดหลัก -->
-        <div class="flex border-b border-slate-200 mb-8 overflow-x-auto whitespace-nowrap gap-2">
-            <button onclick="switchTab('daily')" id="tab-daily-btn" class="border-b-2 border-emerald-500 text-emerald-600 px-5 py-3 text-sm font-semibold flex items-center gap-2 transition duration-200">
-                <span>📝 บันทึก & รายการประจำวัน</span>
-            </button>
-            <button onclick="switchTab('stocks')" id="tab-stocks-btn" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 px-5 py-3 text-sm font-semibold flex items-center gap-2 transition duration-200">
-                <span>📈 พอร์ตหุ้น & การลงทุน</span>
-            </button>
-            <button onclick="switchTab('monthly')" id="tab-monthly-btn" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 px-5 py-3 text-sm font-semibold flex items-center gap-2 transition duration-200">
-                <span>📊 รายงานสรุปรายเดือน</span>
-            </button>
+        <!-- สวิตช์และแถบควบคุมนำเข้า/ส่งออกข้อมูล -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 mb-6">
+            <!-- แท็บสำหรับสลับหน้าแดชบอร์ดหลัก -->
+            <div class="flex overflow-x-auto whitespace-nowrap gap-2">
+                <button onclick="switchTab('daily')" id="tab-daily-btn" class="border-b-2 border-emerald-500 text-emerald-600 px-4 py-3.5 text-sm font-semibold flex items-center gap-2 transition duration-200">
+                    <span>📝 บันทึกรายวัน</span>
+                </button>
+                <button onclick="switchTab('stocks')" id="tab-stocks-btn" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 px-4 py-3.5 text-sm font-semibold flex items-center gap-2 transition duration-200">
+                    <span>📈 พอร์ตหุ้นเรียลไทม์</span>
+                </button>
+                <button onclick="switchTab('monthly')" id="tab-monthly-btn" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 px-4 py-3.5 text-sm font-semibold flex items-center gap-2 transition duration-200">
+                    <span>📊 สรุปประวัติรายเดือน</span>
+                </button>
+            </div>
+
+            <!-- ส่วนควบคุมข้อมูลด่วน -->
+            <div class="flex items-center gap-2 self-end sm:self-auto pb-3 sm:pb-0">
+                <input type="file" id="import-csv-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
+                
+                <button onclick="triggerCSVImport()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-lg font-semibold transition duration-150 flex items-center gap-1">
+                    📥 นำเข้า CSV
+                </button>
+                <button onclick="exportData('csv')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg font-semibold transition duration-150 flex items-center gap-1">
+                    📤 ส่งออก CSV
+                </button>
+                <button onclick="openClearModal()" class="md:hidden text-xs bg-rose-50 border border-rose-100 text-rose-600 px-2.5 py-1.5 rounded-lg font-semibold transition">
+                    ล้างทั้งหมด
+                </button>
+            </div>
         </div>
 
         <!-- หน้าที่ 1: หน้าบันทึกหลัก (รายรับ-รายจ่ายรายวัน) -->
@@ -99,26 +130,26 @@
             <!-- แผงการเงินภาพรวม (Financial Overview Cards) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- ยอดคงเหลือ -->
-                <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl shadow-slate-200 relative overflow-hidden transition-transform duration-300 hover:scale-[1.02]">
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl shadow-slate-200 relative overflow-hidden transition-transform duration-300 hover:scale-[1.01]">
                     <div class="absolute right-0 bottom-0 opacity-10 translate-x-4 translate-y-4">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-48 h-48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                         </svg>
                     </div>
                     <div class="flex justify-between items-center mb-4">
-                        <span class="text-sm font-medium text-slate-300">ยอดเงินคงเหลือทั้งหมด (บัญชีเดินสะพัด)</span>
-                        <span class="bg-slate-700 bg-opacity-50 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-medium">สุทธิ</span>
+                        <span class="text-xs font-medium text-slate-300">ยอดคงเหลือทั้งหมด (กระเป๋าเงินคลาวด์)</span>
+                        <span class="bg-slate-700 bg-opacity-50 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold">สุทธิ</span>
                     </div>
                     <div class="text-3xl font-bold tracking-tight" id="total-balance">0.00 ฿</div>
                     <div class="text-xs text-slate-400 mt-2 flex items-center gap-1" id="balance-subtext">
-                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> สถานะการเงินปกติ
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> ระบบเชื่อมต่อฐานข้อมูลแบบสด
                     </div>
                 </div>
 
                 <!-- รายรับรวม -->
-                <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 transition-transform duration-300 hover:scale-[1.02]">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 transition-transform duration-300 hover:scale-[1.01]">
                     <div class="flex justify-between items-center mb-4">
-                        <span class="text-sm font-medium text-slate-500">รายรับสะสม</span>
+                        <span class="text-xs font-medium text-slate-500">รายรับรวมทั้งหมด</span>
                         <div class="bg-emerald-50 text-emerald-600 p-2 rounded-xl">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -126,13 +157,13 @@
                         </div>
                     </div>
                     <div class="text-3xl font-bold text-slate-900" id="total-income">0.00 ฿</div>
-                    <div class="text-xs text-slate-400 mt-2" id="income-count">0 รายการ</div>
+                    <div class="text-xs text-slate-400 mt-2 font-medium" id="income-count">0 รายการ</div>
                 </div>
 
                 <!-- รายจ่ายรวม -->
-                <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 transition-transform duration-300 hover:scale-[1.02]">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 transition-transform duration-300 hover:scale-[1.01]">
                     <div class="flex justify-between items-center mb-4">
-                        <span class="text-sm font-medium text-slate-500">รายจ่ายสะสม</span>
+                        <span class="text-xs font-medium text-slate-500">รายจ่ายรวมทั้งหมด</span>
                         <div class="bg-rose-50 text-rose-600 p-2 rounded-xl">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
@@ -140,131 +171,119 @@
                         </div>
                     </div>
                     <div class="text-3xl font-bold text-slate-900" id="total-expense">0.00 ฿</div>
-                    <div class="text-xs text-slate-400 mt-2" id="expense-count">0 รายการ</div>
+                    <div class="text-xs text-slate-400 mt-2 font-medium" id="expense-count">0 รายการ</div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                <!-- คอลัมน์ซ้าย: บันทึกรายการใหม่ & กราฟสรุป (LG = 5/12) -->
+                <!-- คอลัมน์ซ้าย: ฟอร์มกรอกข้อมูลการเงินใหม่ & กราฟ (LG = 5/12) -->
                 <div class="lg:col-span-5 space-y-8">
-                    <!-- ส่วนของฟอร์มกรอกข้อมูล -->
+                    <!-- ฟอร์มกรอกบันทึก -->
                     <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
                         <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <span>✍️ บันทึกรายการใหม่</span>
+                            <span>✍️ บันทึกธุรกรรมการเงิน</span>
                         </h2>
                         <form id="ledger-form" class="space-y-4">
-                            <!-- ประเภทรายการ -->
                             <div>
-                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">ประเภทธุรกรรม</label>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">ประเภทรายการ</label>
                                 <div class="grid grid-cols-2 gap-3">
                                     <label class="relative flex items-center justify-center p-3 border rounded-xl cursor-pointer transition duration-200 bg-emerald-50 bg-opacity-40 border-emerald-400 text-emerald-700" id="type-income-label">
                                         <input type="radio" name="tx-type" value="income" checked class="sr-only" onchange="toggleTxType('income')">
-                                        <span class="text-sm font-medium">➕ รายรับ</span>
+                                        <span class="text-xs font-bold">➕ รายรับ</span>
                                     </label>
                                     <label class="relative flex items-center justify-center p-3 border rounded-xl cursor-pointer transition duration-200 bg-white border-slate-200 text-slate-600 hover:bg-slate-50" id="type-expense-label">
                                         <input type="radio" name="tx-type" value="expense" class="sr-only" onchange="toggleTxType('expense')">
-                                        <span class="text-sm font-medium">➖ รายจ่าย</span>
+                                        <span class="text-xs font-bold">➖ รายจ่าย</span>
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- รายละเอียด / ชื่อรายการ -->
                             <div>
-                                <label for="description" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">ชื่อรายการ / คำอธิบาย</label>
-                                <input type="text" id="description" placeholder="เช่น เงินเดือน, ค่าอาหารกลางวัน, ค่าน้ำ" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm">
+                                <label for="description" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">คำอธิบายธุรกรรม</label>
+                                <input type="text" id="description" placeholder="เช่น เงินเดือน, ค่าชานมไข่มุก, ข้าวกลางวัน" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm">
                             </div>
 
-                            <!-- จำนวนเงิน & วันที่ -->
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label for="amount" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">จำนวนเงิน (บาท)</label>
+                                    <label for="amount" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">จำนวนเงิน (บาท)</label>
                                     <input type="number" id="amount" placeholder="0.00" min="0.01" step="any" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm font-semibold">
                                 </div>
                                 <div>
-                                    <label for="date" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">วันที่ทำรายการ</label>
+                                    <label for="date" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">วันที่ทำธุรกรรม</label>
                                     <input type="date" id="date" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm">
                                 </div>
                             </div>
 
-                            <!-- หมวดหมู่ -->
                             <div>
-                                <label for="category" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">หมวดหมู่</label>
+                                <label for="category" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">หมวดหมู่ของรายการ</label>
                                 <select id="category" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm bg-white">
-                                    <!-- หมวดหมู่จะเปลี่ยนตามประเภทธุรกรรมผ่าน JS -->
                                 </select>
                             </div>
 
-                            <!-- โน้ตย่อ -->
                             <div>
-                                <label for="note" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">บันทึกเพิ่มเติม (ถ้ามี)</label>
-                                <input type="text" id="note" placeholder="เช่น เลี้ยงวันเกิดเพื่อน" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm">
+                                <label for="note" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">บันทึกเพิ่มเติมย่อ</label>
+                                <input type="text" id="note" placeholder="เช่น เลี้ยงขอบคุณหัวหน้า, มีโปรโมชั่นลด 10%" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition text-sm">
                             </div>
 
-                            <!-- ปุ่มส่งข้อมูล -->
-                            <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-emerald-100">
+                            <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-emerald-100">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                บันทึกรายการ
+                                <span>บันทึกรายการลง Cloud</span>
                             </button>
                         </form>
                     </div>
 
-                    <!-- ส่วนของกราฟสรุปวิเคราะห์ -->
+                    <!-- กราฟวงกลมแสดงสัดส่วน -->
                     <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
                         <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <span>📊 สัดส่วนรายจ่ายแยกตามหมวดหมู่</span>
+                            <span>📊 สัดส่วนรายจ่ายแยกหมวดหมู่</span>
                         </h2>
                         <div class="relative w-full aspect-square max-w-[280px] mx-auto flex items-center justify-center">
                             <canvas id="categoryChart"></canvas>
-                            <!-- ข้อความแสดงเมื่อไม่มีข้อมูลกราฟ -->
                             <div id="no-chart-data" class="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center text-center p-4">
                                 <span class="text-4xl mb-2">📭</span>
-                                <p class="text-sm font-medium text-slate-400">ยังไม่มีข้อมูลรายจ่ายเพื่อนำมาวิเคราะห์กราฟ</p>
+                                <p class="text-xs font-semibold text-slate-400">ยังไม่มีประวัติรายจ่ายใดๆ ในฟีดระบบเพื่อประมวลกราฟ</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- คอลัมน์ขวา: ประวัติรายการธุรกรรมและการกรอง (LG = 7/12) -->
+                <!-- คอลัมน์ขวา: ตารางประวัติและระบบการค้นหา/กรอง (LG = 7/12) -->
                 <div class="lg:col-span-7 space-y-6">
                     <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <span>📋 ประวัติการเงิน</span>
-                                <span id="filtered-count" class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-normal">ทั้งหมด 0 รายการ</span>
+                                <span>📋 รายละเอียดประวัติเคลื่อนไหว</span>
+                                <span id="filtered-count" class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold">ทั้งหมด 0 รายการ</span>
                             </h2>
                         </div>
 
-                        <!-- ส่วนตัวกรอง (Filters) -->
+                        <!-- ตัวกรองข้อมูล -->
                         <div class="space-y-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <!-- ค้นหาด้วยคีย์เวิร์ด -->
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </span>
-                                <input type="text" id="search-keyword" oninput="applyFilters()" placeholder="ค้นหารายการ, บันทึกย่อ..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm bg-white">
+                                <input type="text" id="search-keyword" oninput="applyFilters()" placeholder="ค้นหารายละเอียดคีย์เวิร์ด, บันทึกย่อ..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent text-sm bg-white">
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <!-- กรองตามชนิดธุรกรรม -->
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">ประเภท</label>
+                                    <label class="block text-[10px] font-bold text-slate-400 mb-1">ประเภทรายการ</label>
                                     <select id="filter-type" onchange="applyFilters()" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 text-xs bg-white">
-                                        <option value="all">ทั้งหมด</option>
+                                        <option value="all">ทั้งหมดทุกรายการ</option>
                                         <option value="income">เฉพาะรายรับ</option>
                                         <option value="expense">เฉพาะรายจ่าย</option>
                                     </select>
                                 </div>
-                                <!-- กรองตามช่วงเวลา -->
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">ช่วงเวลา</label>
+                                    <label class="block text-[10px] font-bold text-slate-400 mb-1">กรองช่วงเวลา</label>
                                     <select id="filter-month" onchange="applyFilters()" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 text-xs bg-white">
                                         <option value="all">ทั้งหมดทุกช่วงเวลา</option>
-                                        <option value="current-month">เฉพาะเดือนปัจจุบัน</option>
+                                        <option value="current-month">เดือนปัจจุบันเท่านั้น</option>
                                         <option value="last-7-days">7 วันล่าสุด</option>
                                         <option value="last-30-days">30 วันล่าสุด</option>
                                     </select>
@@ -272,7 +291,7 @@
                             </div>
                         </div>
 
-                        <!-- ตารางแสดงรายการธุรกรรม -->
+                        <!-- ตารางแสดงธุรกรรม -->
                         <div class="overflow-x-auto rounded-xl border border-slate-100">
                             <table class="w-full text-left border-collapse">
                                 <thead>
@@ -280,50 +299,44 @@
                                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">วันที่ / หมวดหมู่</th>
                                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">รายละเอียด</th>
                                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">จำนวนเงิน</th>
-                                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">จัดการ</th>
+                                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">ตัวเลือก</th>
                                     </tr>
                                 </thead>
                                 <tbody id="ledger-table-body" class="divide-y divide-slate-100">
-                                    <!-- ข้อมูลแทรกด้วย JS -->
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- สเตทแสดงเมื่อไม่มีข้อมูลในตาราง -->
+                        <!-- เมื่อไม่มีข้อมูล -->
                         <div id="no-transactions-state" class="hidden flex flex-col items-center justify-center py-12 text-center">
                             <span class="text-5xl mb-3">🔍</span>
-                            <p class="text-base font-semibold text-slate-600">ไม่พบรายการธุรกรรม</p>
-                            <p class="text-xs text-slate-400 mt-1">ลองเปลี่ยนเงื่อนไขการค้นหาหรือเพิ่มรายการใหม่</p>
+                            <p class="text-sm font-semibold text-slate-600">ไม่พบรายการประวัติธุรกรรมที่ระบุ</p>
+                            <p class="text-xs text-slate-400 mt-1">ลองเริ่มกรอกรายการใหม่ด้านซ้ายเพื่อเพิ่มข้อมูลซิงค์</p>
                         </div>
-
                     </div>
                 </div>
-
             </div>
         </div>
 
         <!-- หน้าที่ 2: แท็บพอร์ตหุ้นและการลงทุน (Stock Investment Tracker) -->
         <div id="stocks-tab-content" class="hidden space-y-8">
-            
-            <!-- ส่วนการตั้งค่าระบบและอัตราแลกเปลี่ยน -->
+            <!-- คอนฟิกอัตราแลกเปลี่ยน -->
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div class="flex flex-col gap-1">
                     <h3 class="text-md font-bold text-slate-800 flex items-center gap-1.5">
-                        <span>💵 ตั้งค่าสกุลเงินและอัตราแลกเปลี่ยน</span>
-                        <span id="rate-source-badge" class="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full">กำลังประมวลผล...</span>
+                        <span>💵 ตั้งค่าอัตราแลกเปลี่ยนและแสดงพอร์ต</span>
+                        <span id="rate-source-badge" class="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full">กำลังดึงอัตราสด...</span>
                     </h3>
-                    <p class="text-xs text-slate-400">ระบบอ้างอิงอัตราแลกเปลี่ยนจาก API ล่าสุดเพื่อแปลงมูลค่าพอร์ตให้เรียลไทม์</p>
+                    <p class="text-xs text-slate-400">ระบบอ้างอิงมูลค่าหุ้นตลาดโลกด้วย API สด แปลงตามอัตราแลกเปลี่ยนปัจจุบัน</p>
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <!-- ช่องเปลี่ยนค่าเงิน USD to THB -->
                     <div class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
                         <span class="text-xs font-semibold text-slate-500">1 USD =</span>
                         <input type="number" id="exchange-rate-input" oninput="handleManualRateChange(this.value)" step="0.01" class="w-16 bg-transparent text-sm font-bold text-slate-800 focus:outline-none text-center" value="35.00">
                         <span class="text-xs font-semibold text-slate-500">THB</span>
                     </div>
 
-                    <!-- ปุ่มแปลงค่าเงินพอร์ตการแสดงผลหลัก -->
                     <div class="flex items-center bg-slate-100 p-1 rounded-xl">
                         <button onclick="changeDisplayCurrency('THB')" id="display-currency-thb" class="px-3 py-1.5 text-xs font-bold rounded-lg transition duration-200 bg-white text-emerald-600 shadow-sm">
                             THB (฿)
@@ -335,203 +348,181 @@
                 </div>
             </div>
 
-            <!-- การ์ดวิเคราะห์มูลค่าสรุปรวมของพอร์ตหุ้น -->
+            <!-- สรุปผลลัพธ์พอร์ตการเงิน -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <!-- มูลค่าพอร์ตปัจจุบัน (Current Value) -->
                 <div class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl p-6 shadow-md relative overflow-hidden transition duration-200 hover:scale-[1.01]">
-                    <span class="text-xs font-semibold text-emerald-100 block opacity-90 uppercase tracking-wider mb-2">มูลค่าพอร์ตปัจจุบัน</span>
+                    <span class="text-xs font-semibold text-emerald-100 block opacity-90 uppercase tracking-wider mb-2">มูลค่าพอร์ตรวมปัจจุบัน</span>
                     <span class="text-2xl sm:text-3xl font-extrabold block" id="portfolio-current-val">0.00 ฿</span>
                     <span class="text-xs text-emerald-50 opacity-80 block mt-2" id="portfolio-converted-alternative">≈ 0.00 $</span>
                 </div>
 
-                <!-- ต้นทุนทั้งหมด (Total Cost) -->
                 <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm transition duration-200 hover:scale-[1.01]">
-                    <span class="text-xs font-semibold text-slate-400 block uppercase tracking-wider mb-2">ต้นทุนทั้งหมด (รวมค่าธรรมเนียม)</span>
+                    <span class="text-xs font-semibold text-slate-400 block uppercase tracking-wider mb-2">ต้นทุนทั้งหมดรวมสุทธิ</span>
                     <span class="text-2xl font-bold text-slate-800 block" id="portfolio-total-cost">0.00 ฿</span>
-                    <span class="text-xs text-slate-400 block mt-2">ยอดเงินลงทุนสะสมทั้งหมด</span>
+                    <span class="text-xs text-slate-400 block mt-2">มูลค่าเงินซื้อจริงรวมค่าธรรมเนียม</span>
                 </div>
 
-                <!-- ยอดกำไร/ขาดทุนรวม (Total Gain/Loss) -->
                 <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm transition duration-200 hover:scale-[1.01]" id="portfolio-gain-card">
-                    <span class="text-xs font-semibold text-slate-400 block uppercase tracking-wider mb-1">ผลตอบแทนทั้งหมด (สุทธิ)</span>
+                    <span class="text-xs font-semibold text-slate-400 block uppercase tracking-wider mb-1">ผลตอบแทนสุทธิทั้งหมด</span>
                     <span class="text-2xl font-bold text-slate-800 block" id="portfolio-total-gain">0.00 ฿</span>
                     <span class="text-xs font-semibold block mt-1 text-slate-400" id="portfolio-total-gain-pct">0.00%</span>
                     
-                    <!-- ส่วนแยกกำไรรวมและขาดทุนรวมเฉพาะส่วนไม่นำมารวมกัน -->
                     <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-left">
                         <div>
-                            <span class="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">กำไรรวม (บวกเฉพาะตัว)</span>
-                            <span id="portfolio-winning-sum" class="text-xs sm:text-sm font-bold text-emerald-600">+0.00 ฿</span>
+                            <span class="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">ตัวกำไรสุทธิรวม</span>
+                            <span id="portfolio-winning-sum" class="text-xs font-bold text-emerald-600">+0.00 ฿</span>
                         </div>
                         <div class="border-l border-slate-100 pl-2.5">
-                            <span class="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">ขาดทุนรวม (ลบเฉพาะตัว)</span>
-                            <span id="portfolio-losing-sum" class="text-xs sm:text-sm font-bold text-rose-600">-0.00 ฿</span>
+                            <span class="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">ตัวขาดทุนสุทธิรวม</span>
+                            <span id="portfolio-losing-sum" class="text-xs font-bold text-rose-600">-0.00 ฿</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- ยอดเงินออม/สภาพคล่องและสัดส่วนพอร์ต -->
                 <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
-                        <span class="text-xs font-semibold text-slate-400 block uppercase tracking-wider mb-1">จำนวนรายการหุ้นที่ถือครอง</span>
+                        <span class="text-xs font-semibold text-slate-400 block uppercase tracking-wider mb-1">จำนวนสินทรัพย์ในพอร์ต</span>
                         <span class="text-xl font-bold text-slate-800 block" id="total-stocks-held">0 รายการ</span>
                     </div>
-                    <div class="text-[11px] text-slate-400 mt-2 flex items-center gap-1">
+                    <div class="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
                         <span class="animate-ping inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></span>
-                        ระบบอัปเดตราคาตลาดอัตโนมัติผ่าน Yahoo Finance
+                        ระบบซิงค์ราคากับ Yahoo Finance แบบเวลาจริง
                     </div>
                 </div>
             </div>
 
-            <!-- ส่วนจัดการรายการหุ้นและตารางแสดงผล -->
+            <!-- ตารางพอร์ตและข้อมูลสินทรัพย์ -->
             <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <div class="flex items-center gap-2">
                         <span class="text-xl">📊</span>
-                        <h2 class="text-lg font-bold text-slate-800">รายการสินทรัพย์หุ้นในพอร์ต</h2>
+                        <h2 class="text-lg font-bold text-slate-800">รายละเอียดพอร์ตการถือครองสินทรัพย์</h2>
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- ตัวแสดงสถานะการอัปเดตล่าสุดและเอฟเฟกต์ไฟกะพริบ -->
                         <div id="last-stock-update-time" class="text-xs font-semibold text-slate-500 flex items-center gap-1.5 bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200">
                             <span class="inline-block w-2 h-2 rounded-full bg-slate-400"></span>
-                            <span>ยังไม่ได้ดึงราคาสด</span>
+                            <span>ยังไม่ได้เชื่อมข้อมูลสด</span>
                         </div>
 
-                        <!-- ปุ่มดึงราคาอัตโนมัติ -->
-                        <button onclick="refreshAllStockPrices()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-semibold text-sm transition duration-150 flex items-center justify-center gap-1.5 border border-slate-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                            <span>ดึงราคาทั้งพอร์ตล่าสุด</span>
+                        <button onclick="refreshAllStockPrices()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200">
+                            🔄 รีเฟรชราคาทั้งพอร์ต
                         </button>
 
-                        <button onclick="openStockModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition duration-150 flex items-center justify-center gap-1.5 shadow-md shadow-emerald-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                            เพิ่มหุ้นเข้าพอร์ต
+                        <button onclick="openStockModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-100">
+                            ➕ เพิ่มสินทรัพย์เข้าพอร์ต
                         </button>
                     </div>
                 </div>
 
-                <!-- ตารางหุ้น -->
                 <div class="overflow-x-auto rounded-xl border border-slate-100">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wider">
                                 <th class="px-4 py-3.5">หุ้น / สินทรัพย์</th>
-                                <th class="px-4 py-3.5">ผู้ให้บริการ (โบรคเกอร์)</th>
-                                <th class="px-4 py-3.5 text-right">จำนวนหุ้น</th>
-                                <th class="px-4 py-3.5 text-right" id="th-cost-price">ต้นทุนซื้อต่อหุ้น / ค่าธรรมเนียม</th>
-                                <th class="px-4 py-3.5 text-right" id="th-current-price">ราคาตลาดปัจจุบัน</th>
-                                <th class="px-4 py-3.5 text-right" id="th-current-val">มูลค่ารวมปัจจุบัน</th>
+                                <th class="px-4 py-3.5">โบรคเกอร์</th>
+                                <th class="px-4 py-3.5 text-right">จำนวนหน่วย</th>
+                                <th class="px-4 py-3.5 text-right" id="th-cost-price">ต้นทุนซื้อต่อหุ้น / รวมค่าฟี</th>
+                                <th class="px-4 py-3.5 text-right" id="th-current-price">ราคาตลาดสด</th>
+                                <th class="px-4 py-3.5 text-right" id="th-current-val">มูลค่ารวม</th>
                                 <th class="px-4 py-3.5 text-right">กำไร / ขาดทุน</th>
                                 <th class="px-4 py-3.5 text-center">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="stock-table-body" class="divide-y divide-slate-100 text-sm">
-                            <!-- แทรกลิสต์หุ้นผ่าน JS -->
                         </tbody>
                     </table>
                 </div>
 
-                <!-- สเตทแสดงเมื่อพอร์ตว่างเปล่า -->
                 <div id="no-stocks-state" class="hidden flex flex-col items-center justify-center py-16 text-center">
                     <span class="text-6xl mb-4">📈</span>
-                    <p class="text-base font-bold text-slate-600">ยังไม่มีหุ้นใดๆ บันทึกในพอร์ตลงทุนของคุณ</p>
-                    <p class="text-xs text-slate-400 mt-1 max-w-md">กดปุ่ม "เพิ่มหุ้นเข้าพอร์ต" ระบบจะช่วยค้นหาราคาตลาดจริงและสถิติกำไรขาดทุนให้อัตโนมัติทันที</p>
+                    <p class="text-base font-bold text-slate-600">ยังไม่พบบันทึกการซื้อสินทรัพย์ในพอร์ตการลงทุน</p>
+                    <p class="text-xs text-slate-400 mt-1 max-w-md">เพิ่มหุ้นด้วยตัวย่อตลาดโลก (เช่น CPALL, AAPL, BTC-USD) เพื่อซิงค์ราคาทันที</p>
                 </div>
             </div>
         </div>
 
-        <!-- หน้าที่ 3: หน้าสรุปภาพรวมรายเดือน (รายรับ-รายจ่ายสะสม) -->
+        <!-- หน้าที่ 3: สรุปประวัติการเงินรายเดือน (Monthly Reports) -->
         <div id="monthly-tab-content" class="hidden space-y-8">
-            <!-- ยอดสรุป & กราฟแนวโน้มรายเดือน -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- กราฟแท่งเปรียบเทียบ รายรับ VS รายจ่าย -->
+                <!-- กราฟประมวลผลเปรียบเทียบ -->
                 <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-md border border-slate-100">
                     <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <span>📊 แนวโน้มรายรับ-รายจ่ายรายเดือน</span>
+                        <span>📊 อัตราเปรียบเทียบ รายรับ VS รายจ่ายรายเดือน</span>
                     </h2>
                     <div class="relative w-full h-[320px]">
                         <canvas id="monthlyBarChart"></canvas>
-                        <!-- สเตทแสดงเมื่อไม่มีข้อมูลกราฟ -->
                         <div id="no-monthly-chart-data" class="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center text-center p-4 hidden">
                             <span class="text-4xl mb-2">📊</span>
-                            <p class="text-sm font-medium text-slate-400">ยังไม่มีข้อมูลทางการเงินที่เพียงพอสำหรับเปรียบเทียบรายเดือน</p>
+                            <p class="text-sm font-medium text-slate-400">ระบบยังมีประวัติข้อมูลไม่เพียงพอในการสร้างรายงานรายเดือน</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- ข้อมูลเชิงลึกทางการเงินอัจฉริยะ -->
+                <!-- การ์ดวิเคราะห์ข้อมูลเชิงลึก -->
                 <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 space-y-6 flex flex-col justify-between">
                     <div>
                         <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <span>💡 ข้อมูลเจาะลึกทางการเงิน</span>
+                            <span>💡 สถิติการเงินประมวลผลอัจฉริยะ</span>
                         </h2>
                         <div class="space-y-4">
-                            <!-- เดือนที่ออมสูงสุด -->
                             <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                                <span class="text-xs font-semibold text-emerald-700 block mb-1">...เดือนที่ออมเงินได้สูงสุด</span>
-                                <span class="text-lg font-bold text-emerald-950" id="best-savings-month">ไม่มีข้อมูล</span>
+                                <span class="text-xs font-semibold text-emerald-700 block mb-1">เดือนที่มีการเก็บออมสูงสุด</span>
+                                <span class="text-lg font-bold text-emerald-950 block" id="best-savings-month">ไม่มีข้อมูล</span>
                                 <span class="text-xs text-emerald-600 block mt-1" id="best-savings-amount">0.00 ฿</span>
                             </div>
-                            <!-- ค่าเฉลี่ยการออมต่อเดือน -->
                             <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <span class="text-xs font-semibold text-slate-500 block mb-1">เงินออมเฉลี่ยต่อเดือน</span>
-                                <span class="text-lg font-bold text-slate-900" id="avg-savings">0.00 ฿</span>
+                                <span class="text-xs font-semibold text-slate-500 block mb-1">ค่าเฉลี่ยสถิติการเก็บออมต่อเดือน</span>
+                                <span class="text-lg font-bold text-slate-900 block" id="avg-savings">0.00 ฿</span>
                                 <span class="text-xs text-slate-400 block mt-1" id="avg-savings-pct">อัตราการออมเฉลี่ย: 0%</span>
                             </div>
                         </div>
                     </div>
                     <div class="text-xs text-slate-400 italic">
-                        * ระบบจะคำนวณและประมวลผลข้อมูลตามรายการเคลื่อนไหวบัญชีทั้งหมดของคุณโดยอัตโนมัติ
+                        * ตัวเลขสถิติต่างๆ คำนวณตามประวัติบันทึกจริงทั้งหมดของผู้ใช้บนระบบบัญชีคลาวด์ของคุณ
                     </div>
                 </div>
             </div>
 
-            <!-- ตารางเปรียบเทียบสถิติรายเดือน -->
+            <!-- ตารางสรุปรายเดือน -->
             <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
                 <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <span>🗓️ ตารางเปรียบเทียบรายรับ-รายจ่ายรายเดือน</span>
+                    <span>🗓️ บัญชีสรุปเปรียบเทียบประวัติรายเดือน</span>
                 </h2>
                 <div class="overflow-x-auto rounded-xl border border-slate-100">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-100">
-                                <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">เดือน / ปี</th>
+                                <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">เดือน / ปี (พ.ศ.)</th>
                                 <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">รายรับรวม</th>
                                 <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">รายจ่ายรวม</th>
-                                <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">คงเหลือ / ออมสุทธิ</th>
-                                <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">สัดส่วนการออม</th>
+                                <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">เงินคงเหลือออมสุทธิ</th>
+                                <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">สัดส่วนการเก็บออม</th>
                             </tr>
                         </thead>
                         <tbody id="monthly-summary-table-body" class="divide-y divide-slate-100">
-                            <!-- แทรกรวมสรุปด้วย JS -->
                         </tbody>
                     </table>
                 </div>
 
-                <!-- สเตทแสดงเมื่อไม่มีข้อมูลประวัติรายเดือน -->
                 <div id="no-monthly-table-state" class="hidden flex flex-col items-center justify-center py-12 text-center">
                     <span class="text-5xl mb-3">📅</span>
-                    <p class="text-base font-semibold text-slate-600">ไม่พบรายการรายเดือน</p>
-                    <p class="text-xs text-slate-400 mt-1">กรุณาเพิ่มข้อมูลบันทึกรายรับหรือรายจ่ายอย่างน้อย 1 รายการเพื่อเริ่มสรุปผล</p>
+                    <p class="text-sm font-semibold text-slate-600">ไม่พบประวัติเปรียบเทียบทางการเงิน</p>
+                    <p class="text-xs text-slate-400 mt-1">กรุณากรอกบันทึกข้อมูลและระบุวันที่อย่างน้อย 1 รายการ</p>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- Custom Modal: เพิ่ม / แก้ไขรายการหุ้นในพอร์ต -->
+    <!-- โมดอล: จัดการสินทรัพย์พอร์ตลงทุน -->
     <div id="stock-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-slate-900 bg-opacity-40 backdrop-blur-sm transition-opacity" onclick="closeStockModal()"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
                 <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-4">
-                    <h3 class="text-lg font-bold text-slate-900" id="stock-modal-title">📈 บันทึกรายการถือครองหุ้น</h3>
+                    <h3 class="text-md font-bold text-slate-900" id="stock-modal-title">📈 บันทึกข้อมูลสินทรัพย์ลงทุน</h3>
                     <button onclick="closeStockModal()" class="text-slate-400 hover:text-slate-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -540,33 +531,29 @@
                 </div>
                 
                 <form id="stock-form" class="space-y-4">
-                    <!-- ไอดีสำหรับระบุการแก้ไข (ถ้ามี) -->
                     <input type="hidden" id="stock-edit-id">
 
                     <div class="grid grid-cols-2 gap-4">
-                        <!-- ชื่อหุ้น -->
                         <div>
-                            <label for="stock-symbol" class="block text-xs font-semibold text-slate-500 mb-2">ชื่อหุ้น / สินทรัพย์ (เช่น AAPL, PTT)</label>
-                            <input type="text" id="stock-symbol" required placeholder="เช่น TSLA, CPALL" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-bold uppercase">
-                            <span class="text-[10px] text-slate-400 block mt-1">* หุ้นไทย ระบบจะดึงราคาจากตลาดหลักทรัพย์ให้อัตโนมัติ</span>
+                            <label for="stock-symbol" class="block text-xs font-semibold text-slate-500 mb-2">ชื่อตัวย่อ/สัญลักษณ์ (เช่น AAPL, CPALL, BTC-USD)</label>
+                            <input type="text" id="stock-symbol" required placeholder="เช่น TSLA, CPALL, BTC-USD" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-bold uppercase">
+                            <span class="text-[10px] text-slate-400 block mt-1">* หุ้นต่างประเทศ, หุ้นไทยดึงอัตโนมัติ</span>
                         </div>
-                        <!-- โบรกเกอร์ / ผู้บริการ -->
                         <div>
-                            <label for="stock-broker" class="block text-xs font-semibold text-slate-500 mb-2">ผู้ให้บริการ (Broker)</label>
+                            <label for="stock-broker" class="block text-xs font-semibold text-slate-500 mb-2">โบรคเกอร์ผู้ให้บริการ</label>
                             <select id="stock-broker" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
                                 <option value="Webull">Webull</option>
                                 <option value="Dime">Dime</option>
                                 <option value="SCB">SCB</option>
                                 <option value="InnovestX">InnovestX</option>
-                                <option value="Other">ผู้ให้บริการอื่น ๆ</option>
+                                <option value="Other">โบรคเกอร์อื่นๆ</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
-                        <!-- สกุลเงินซื้อขาย -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-2">สกุลเงินในการลงทุน</label>
+                            <label class="block text-xs font-semibold text-slate-500 mb-2">สกุลเงินของสินทรัพย์</label>
                             <div class="grid grid-cols-2 gap-2">
                                 <label class="flex items-center justify-center p-2 border rounded-xl cursor-pointer text-sm font-semibold transition bg-white border-slate-200 text-slate-500 hover:bg-slate-50" id="curr-thb-label">
                                     <input type="radio" name="stock-currency" value="THB" checked class="sr-only" onchange="toggleStockCurrency('THB')">
@@ -578,41 +565,37 @@
                                 </label>
                             </div>
                         </div>
-                        <!-- จำนวนหุ้น -->
                         <div>
-                            <label for="stock-qty" class="block text-xs font-semibold text-slate-500 mb-2">จำนวนหน่วย (หุ้น)</label>
-                            <input type="number" id="stock-qty" step="any" min="0.0001" required placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold">
+                            <label for="stock-qty" class="block text-xs font-semibold text-slate-500 mb-2">จำนวนหน่วยที่ถือครอง</label>
+                            <input type="number" id="stock-qty" step="any" min="0.0001" required placeholder="0.00" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-4">
-                        <!-- ราคาซื้อต่อหุ้น -->
                         <div>
-                            <label for="stock-buy-price" class="block text-xs font-semibold text-slate-500 mb-1">ราคาที่ซื้อต่อหุ้น</label>
+                            <label for="stock-buy-price" class="block text-xs font-semibold text-slate-500 mb-1">ราคาเฉลี่ยต่อหน่วย</label>
                             <input type="number" id="stock-buy-price" step="any" min="0.0001" required placeholder="0.00" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold">
                         </div>
-                        <!-- ค่าธรรมเนียม -->
                         <div>
-                            <label for="stock-fee" class="block text-xs font-semibold text-slate-500 mb-1">ค่าธรรมเนียมรวม</label>
+                            <label for="stock-fee" class="block text-xs font-semibold text-slate-500 mb-1">ค่าธรรมเนียมสะสม</label>
                             <input type="number" id="stock-fee" step="any" min="0" required placeholder="0.00" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold">
                         </div>
-                        <!-- ราคาตลาดปัจจุบัน -->
                         <div>
-                            <label for="stock-current-price" class="block text-xs font-semibold text-slate-500 mb-1">ราคาปัจจุบัน (เลือกกรอก)</label>
-                            <input type="number" id="stock-current-price" step="any" min="0" placeholder="เว้นว่าง = ดึงออโต้" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold">
+                            <label for="stock-current-price" class="block text-xs font-semibold text-slate-500 mb-1">ราคาตลาดสดปัจจุบัน</label>
+                            <input type="number" id="stock-current-price" step="any" min="0" placeholder="ว่าง = ดึงอัตโนมัติ" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold">
                         </div>
                     </div>
 
                     <div class="mt-6 flex gap-3">
-                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 rounded-xl transition duration-200">บันทึกลงพอร์ต</button>
-                        <button type="button" onclick="closeStockModal()" class="w-full border border-slate-200 text-slate-600 font-medium py-3 rounded-xl hover:bg-slate-50 transition duration-200">ยกเลิก</button>
+                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl transition duration-200">บันทึกลงคลาวด์</button>
+                        <button type="button" onclick="closeStockModal()" class="w-full border border-slate-200 text-slate-600 font-semibold py-3 rounded-xl hover:bg-slate-50 transition duration-200">ยกเลิก</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Custom Modal: ยืนยันการลบหุ้นรายตัว -->
+    <!-- โมดอล: ยืนยันลบหุ้น -->
     <div id="delete-stock-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-slate-900 bg-opacity-40 backdrop-blur-sm transition-opacity" onclick="closeDeleteStockModal()"></div>
@@ -625,22 +608,22 @@
                         </svg>
                     </div>
                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                        <h3 class="text-lg leading-6 font-bold text-slate-900">ยืนยันการลบรายการหุ้น</h3>
+                        <h3 class="text-sm font-bold text-slate-900">ลบข้อมูลถือครองสินทรัพย์ออกจากพอร์ต?</h3>
                         <div class="mt-2">
-                            <p class="text-sm text-slate-500">คุณต้องการลบหุ้น "<span id="delete-stock-symbol-text" class="font-bold text-slate-800"></span>" ออกจากพอร์ตลงทุนหรือไม่? ข้อมูลนี้ไม่สามารถกู้คืนได้</p>
+                            <p class="text-xs text-slate-500">คุณต้องการลบข้อมูลสินทรัพย์ "<span id="delete-stock-symbol-text" class="font-bold text-slate-800"></span>" การกระทำนี้จะไม่สามารถย้อนกลับได้</p>
                         </div>
                     </div>
                 </div>
                 <div class="mt-6 flex flex-col sm:flex-row-reverse gap-3">
-                    <button type="button" id="confirm-delete-stock-btn" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2.5 bg-rose-600 text-white font-medium hover:bg-rose-700 focus:outline-none text-sm transition duration-150">ยืนยันการลบ</button>
-                    <button type="button" onclick="closeDeleteStockModal()" class="w-full inline-flex justify-center rounded-xl border border-slate-200 px-4 py-2.5 bg-white text-slate-700 font-medium hover:bg-slate-50 focus:outline-none text-sm transition duration-150">ยกเลิก</button>
+                    <button type="button" id="confirm-delete-stock-btn" class="w-full inline-flex justify-center rounded-xl px-4 py-2.5 bg-rose-600 text-white font-bold hover:bg-rose-700 text-xs transition duration-150">ยืนยันการลบ</button>
+                    <button type="button" onclick="closeDeleteStockModal()" class="w-full inline-flex justify-center rounded-xl border border-slate-200 px-4 py-2.5 bg-white text-slate-700 font-bold hover:bg-slate-50 text-xs transition duration-150">ยกเลิก</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Custom Modal: ยืนยันการลบรายการบัญชีรายวันเดี่ยว -->
-    <div id="delete-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- โมดอล: ยืนยันลบรายการบัญชีเดี่ยว -->
+    <div id="delete-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-slate-900 bg-opacity-40 backdrop-blur-sm transition-opacity" onclick="closeDeleteModal()"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
@@ -652,21 +635,21 @@
                         </svg>
                     </div>
                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                        <h3 class="text-lg leading-6 font-bold text-slate-900" id="modal-title">ยืนยันการลบรายการ</h3>
+                        <h3 class="text-sm font-bold text-slate-900">ยืนยันการลบรายการประวัติ?</h3>
                         <div class="mt-2">
-                            <p class="text-sm text-slate-500">คุณแน่ใจหรือไม่ว่าต้องการลบรายการ "<span id="delete-target-desc" class="font-semibold text-slate-800"></span>"? ข้อมูลนี้ไม่สามารถกู้คืนได้</p>
+                            <p class="text-xs text-slate-500">คุณแน่ใจหรือไม่ว่าต้องการลบธุรกรรม "<span id="delete-target-desc" class="font-bold text-slate-800"></span>"?</p>
                         </div>
                     </div>
                 </div>
                 <div class="mt-6 flex flex-col sm:flex-row-reverse gap-3">
-                    <button type="button" id="confirm-delete-btn" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2.5 bg-rose-600 text-white font-medium hover:bg-rose-700 focus:outline-none text-sm transition duration-150">ยืนยันการลบ</button>
-                    <button type="button" onclick="closeDeleteModal()" class="w-full inline-flex justify-center rounded-xl border border-slate-200 px-4 py-2.5 bg-white text-slate-700 font-medium hover:bg-slate-50 focus:outline-none text-sm transition duration-150">ยกเลิก</button>
+                    <button type="button" id="confirm-delete-btn" class="w-full inline-flex justify-center rounded-xl px-4 py-2.5 bg-rose-600 text-white font-bold hover:bg-rose-700 text-xs transition duration-150">ยืนยันลบรายการ</button>
+                    <button type="button" onclick="closeDeleteModal()" class="w-full inline-flex justify-center rounded-xl border border-slate-200 px-4 py-2.5 bg-white text-slate-700 font-bold hover:bg-slate-50 text-xs transition duration-150">ยกเลิก</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Custom Modal: ยืนยันการล้างข้อมูลทั้งหมด -->
+    <!-- โมดอล: ล้างข้อมูลคลาวด์ทั้งหมด -->
     <div id="clear-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-slate-900 bg-opacity-40 backdrop-blur-sm transition-opacity" onclick="closeClearModal()"></div>
@@ -679,27 +662,27 @@
                         </svg>
                     </div>
                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                        <h3 class="text-lg leading-6 font-bold text-slate-900">ล้างประวัติการเงินทั้งหมด?</h3>
+                        <h3 class="text-sm font-bold text-slate-900">ล้างประวัติทางการเงินทั้งหมดคลาวด์?</h3>
                         <div class="mt-2">
-                            <p class="text-sm text-slate-500">การกระทำนี้จะลบรายการบัญชีและพอร์ตการลงทุนทั้งหมดที่บันทึกไว้ในระบบ Cloud ประจำบัญชีนี้อย่างถาวร ยอดเงินทั้งหมดจะถูกรีเซ็ตเป็นศูนย์</p>
+                            <p class="text-xs text-slate-500">ข้อมูลรายการทำบัญชี และพอร์ตการถือครองสินทรัพย์ทั้งหมดของบัญชีผู้ใช้ปัจจุบันจะถูกลบออกจาก Cloud Database อย่างถาวร</p>
                         </div>
                     </div>
                 </div>
                 <div class="mt-6 flex flex-col sm:flex-row-reverse gap-3">
-                    <button type="button" onclick="clearAllData()" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2.5 bg-rose-600 text-white font-medium hover:bg-rose-700 focus:outline-none text-sm transition duration-150">ใช่, ลบทั้งหมด</button>
-                    <button type="button" onclick="closeClearModal()" class="w-full inline-flex justify-center rounded-xl border border-slate-200 px-4 py-2.5 bg-white text-slate-700 font-medium hover:bg-slate-50 focus:outline-none text-sm transition duration-150">ยกเลิก</button>
+                    <button type="button" onclick="clearAllData()" class="w-full inline-flex justify-center rounded-xl px-4 py-2.5 bg-rose-600 text-white font-bold hover:bg-rose-700 text-xs transition duration-150">ใช่, ลบทั้งหมดถาวร</button>
+                    <button type="button" onclick="closeClearModal()" class="w-full inline-flex justify-center rounded-xl border border-slate-200 px-4 py-2.5 bg-white text-slate-700 font-bold hover:bg-slate-50 text-xs transition duration-150">ยกเลิก</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- สคริปต์การทำงานหลักของแอปพลิเคชันพ่วงโมดูลคลาวด์จัดเก็บข้อมูลของ Firebase -->
+    <!-- แกนหลักการเชื่อมต่อคลาวด์สด Firebase และประมวลผลแอป -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // คอนฟิกูเรชัน Firebase จากผู้ใช้งาน
+        // โครงสร้าง Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBl9Sd4w3Rv74qXi2AyijZa8XyDQQ6gJsQ",
             authDomain: "finflow-expense.firebaseapp.com",
@@ -709,16 +692,15 @@
             appId: "1:670726363251:web:802f743373e7204fe4f206"
         };
 
-        // ตั้งค่าตัวแปรระดับโกลบอลของ Sandbox เพื่อให้ยืดหยุ่น
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'finflow-expense';
         const configToUse = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
 
-        // เริ่มต้นการเชื่อมต่อ Firebase SDK
+        // เริ่มเชื่อมระบบ Firebase Services
         const app = initializeApp(configToUse);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // หมวดหมู่เริ่มต้นสำหรับรายรับและรายจ่ายพร้อมสีและไอคอน
+        // หมวดหมู่ไอคอน
         const categories = {
             income: [
                 { id: 'salary', name: 'เงินเดือน / ค่าจ้าง', icon: '💼', color: '#10b981' },
@@ -740,27 +722,25 @@
             ]
         };
 
-        // ตัวแปรเก็บสถานะรายการ (ข้อมูลจริงจะดึงเรียลไทม์ผ่าน Firebase onSnapshot)
         let transactions = [];
         let stocks = [];
         
-        let activeTxType = 'income'; // ประเภทที่เลือกอยู่เริ่มต้น
-        let activeStockCurrency = 'THB'; // สกุลเงินเริ่มต้นในฟอร์มหาสินทรัพย์
-        let portfolioDisplayCurrency = 'THB'; // สกุลเงินหลักที่ใช้แสดงผลสรุปพอร์ตหุ้น
-        let exchangeRate = 34.50; // อัตราแลกเปลี่ยนเริ่มต้น (USD -> THB)
+        let activeTxType = 'income';
+        let activeStockCurrency = 'THB';
+        let portfolioDisplayCurrency = 'THB';
+        let exchangeRate = 34.50;
 
-        let deletingIndex = null; // ดัชนีที่ต้องการลบ
-        let deletingStockId = null; // รหัสหุ้นที่ต้องการลบ
-        let categoryChart = null; // ตัวแปรกราฟ
-        let monthlyBarChart = null; // ตัวแปรกราฟแท่งแนวโน้มรายเดือน
+        let deletingIndex = null;
+        let deletingStockId = null;
+        let categoryChart = null;
+        let monthlyBarChart = null;
 
-        // รายชื่อเดือนในภาษาไทย
         const thaiMonths = [
             "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
             "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
         ];
 
-        // ผูกองค์ประกอบต่างๆ จาก HTML DOM
+        // ผูกตัวแปร DOM
         const form = document.getElementById('ledger-form');
         const descriptionInput = document.getElementById('description');
         const amountInput = document.getElementById('amount');
@@ -770,7 +750,6 @@
         const tableBody = document.getElementById('ledger-table-body');
         const noTransactionsState = document.getElementById('no-transactions-state');
 
-        // สรุปยอดเงิน
         const totalBalanceEl = document.getElementById('total-balance');
         const totalIncomeEl = document.getElementById('total-income');
         const totalExpenseEl = document.getElementById('total-expense');
@@ -779,18 +758,15 @@
         const expenseCountEl = document.getElementById('expense-count');
         const filteredCountEl = document.getElementById('filtered-count');
 
-        // ฟิลเตอร์ต่างๆ
         const searchInput = document.getElementById('search-keyword');
         const filterTypeSelect = document.getElementById('filter-type');
         const filterMonthSelect = document.getElementById('filter-month');
 
-        // References references references ของคอลเลกชัน Firestore ที่สัมพันธ์กับ User ID
         let txCollectionRef = null;
         let stockCollectionRef = null;
         let unsubscribeTx = null;
         let unsubscribeStocks = null;
 
-        // ฟังก์ชันในการสร้าง ID ป้องกันข้อผิดพลาดของ browser sandbox
         function generateId() {
             if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.randomUUID === 'function') {
                 return window.crypto.randomUUID();
@@ -798,40 +774,82 @@
             return Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 9);
         }
 
-        // ตัวจัดการยืนยันตัวตนก่อนการดึงข้อมูล (RULE 3)
-        async function authenticateAndSync() {
+        // --- ระบบล็อกอิน GOOGLE AUTHENTICATION & ออกจากระบบ ---
+        async function handleGoogleSignIn() {
+            const provider = new GoogleAuthProvider();
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                showToast("🔄 กำลังเปิดหน้าต่างล็อกอินบัญชี Google...", "success");
+                await signInWithPopup(auth, provider);
+                showToast("🎉 เข้าสู่ระบบ Google สำเร็จ! ยินดีต้อนรับครับ", "success");
             } catch (err) {
-                console.warn("Auth error, attempting anonymous fall-back", err);
-                await signInAnonymously(auth);
+                console.error("Google sign in failure:", err);
+                if (err.code === "auth/popup-blocked") {
+                    showToast("❌ เบราว์เซอร์บล็อกป๊อปอัป! กรุณาเปิดป๊อปอัปเพื่อลงชื่อเข้าใช้งาน", "error");
+                } else if (err.code === "auth/iframe-userAgent-auth-not-supported-by-environment" || err.code === "auth/operation-not-allowed") {
+                    showToast("⚠️ ระบบพรีวิว Sandbox บล็อกการเปิดเชื่อม Google ด่วน กรุณานำเว็บขึ้นระบบจริง (Hosting) เพื่อทดสอบ Gmail", "error");
+                } else {
+                    showToast("❌ ล็อกอินล้มเหลว: " + err.message, "error");
+                }
             }
         }
 
-        // จัดการสถานะการล็อกอินและเริ่ม Real-time Sync
-        onAuthStateChanged(auth, (user) => {
+        async function handleSignOut() {
+            try {
+                showToast("⏳ กำลังลงชื่อออก...", "success");
+                await signOut(auth);
+                showToast("👋 ออกจากระบบเรียบร้อยแล้ว", "success");
+            } catch (err) {
+                console.error("Sign out error:", err);
+                showToast("❌ ออกจากระบบไม่สำเร็จ", "error");
+            }
+        }
+
+        // จัดการและอัปเดตสเตตัสการล็อกอินของสมาชิกคลาวด์ (RULE 3)
+        onAuthStateChanged(auth, async (user) => {
+            const warningBanner = document.getElementById('anonymous-warning-banner');
+            const googleLoginBtn = document.getElementById('google-login-btn');
+            const userProfileCard = document.getElementById('user-profile-card');
+
             if (user) {
                 const userId = user.uid;
-                
-                // กำหนดโครงสร้างพาทตามกฎ RULE 1
+
+                // ตรวจสอบว่าเป็นบัญชี Google จริงหรือโหมดทดลองชั่วคราว
+                if (user.isAnonymous) {
+                    warningBanner.classList.remove('hidden');
+                    googleLoginBtn.classList.remove('hidden');
+                    userProfileCard.classList.add('hidden');
+                } else {
+                    warningBanner.classList.add('hidden');
+                    googleLoginBtn.classList.add('hidden');
+                    userProfileCard.classList.remove('hidden');
+
+                    // แสดงโปรไฟล์ผู้ใช้
+                    document.getElementById('user-avatar').src = user.photoURL || 'https://www.gravatar.com/avatar/?d=mp';
+                    document.getElementById('user-display-name').textContent = user.displayName || 'ผู้ใช้ Google';
+                    document.getElementById('user-email').textContent = user.email || '';
+                }
+
+                // สถาปัตยกรรมทางเดินข้อมูล Firestore (RULE 1)
                 txCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'transactions');
                 stockCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'stocks');
 
-                // เริ่มฟังก์ชัน onSnapshot
+                // เริ่มติดตามข้อมูลและดึงประวัติแบบเรียลไทม์ (RULE 2)
                 setupSnapshotListeners();
+            } else {
+                // หากไม่มีผู้ใช้เลย ระบบจะล็อกอินแบบ Anonymous ชั่วคราวเพื่อให้พร้อมทำงานทันที
+                try {
+                    await signInAnonymously(auth);
+                } catch (e) {
+                    console.error("Auto anonymous sign in failed:", e);
+                }
             }
         });
 
-        // ฟังก์ชัน Snapshot ในการตรวจจับความเคลื่อนไหวข้อมูลบนคลาวด์และเรนเดอร์ UI อัตโนมัติ (RULE 2)
         function setupSnapshotListeners() {
             if (unsubscribeTx) unsubscribeTx();
             if (unsubscribeStocks) unsubscribeStocks();
 
-            // ตรวจจับรายการบัญชี
+            // ดึงบัญชีธุรกรรมเรียลไทม์
             unsubscribeTx = onSnapshot(txCollectionRef, (snapshot) => {
                 const items = [];
                 snapshot.forEach(doc => {
@@ -840,10 +858,10 @@
                 transactions = items;
                 updateDashboard();
             }, (error) => {
-                console.error("Firestore transaction query failure:", error);
+                console.error("Firestore onSnapshot transactions error:", error);
             });
 
-            // ตรวจจับพอร์ตหุ้น
+            // ดึงข้อมูลหุ้นเรียลไทม์
             unsubscribeStocks = onSnapshot(stockCollectionRef, (snapshot) => {
                 const items = [];
                 snapshot.forEach(doc => {
@@ -852,11 +870,10 @@
                 stocks = items;
                 updateStockDashboard();
             }, (error) => {
-                console.error("Firestore stock query failure:", error);
+                console.error("Firestore onSnapshot stocks error:", error);
             });
         }
 
-        // ฟังก์ชันจัดฟอร์แมตวันที่ภาษาไทย
         function formatThaiMonth(yearMonthStr) {
             const parts = yearMonthStr.split('-');
             if (parts.length < 2) return yearMonthStr;
@@ -867,48 +884,40 @@
             return `${monthName} ${thaiYear}`;
         }
 
-        // อัปเดตตารางระบุเวลาดึงข้อมูลราคาสต็อกล่าสุด
         function updateLastUpdatedDisplay(timeStr) {
             const el = document.getElementById('last-stock-update-time');
             if (el) {
                 if (timeStr) {
                     el.innerHTML = `
                         <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>อัปเดตราคาสดแล้ว: ${timeStr}</span>
+                        <span>ซิงค์ราคาสด: ${timeStr}</span>
                     `;
                     el.className = "text-xs font-semibold text-emerald-700 flex items-center gap-1.5 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-100";
                 } else {
                     el.innerHTML = `
                         <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-                        <span>ยังไม่ได้ดึงราคาสด</span>
+                        <span>ยังไม่ซิงค์ราคาตลาด</span>
                     `;
                     el.className = "text-xs font-semibold text-slate-500 flex items-center gap-1.5 bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200";
                 }
             }
         }
 
-        // เรียกใช้งานฟังก์ชันเริ่มต้นเมื่อเบราว์เซอร์พร้อมทำงาน
         window.addEventListener('DOMContentLoaded', async () => {
-            // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
             const today = new Date().toISOString().split('T')[0];
             dateInput.value = today;
 
             updateCategoryOptions();
             initChart();
             toggleStockCurrency('THB');
-
-            // เริ่มทำการ Authen และดึงข้อมูล Sync กับ Firebase
-            await authenticateAndSync();
             
-            // ดึงอัตราแลกเปลี่ยน
+            // ดึงอัตราแลกเปลี่ยน API ล่าสุด
             fetchExchangeRate();
 
-            // ดึงข้อมูลเวลาการอัปเดตหุ้นล่าสุด
             const savedTime = localStorage.getItem('finflow_stocks_last_updated');
             updateLastUpdatedDisplay(savedTime);
         });
 
-        // ดึงอัตราแลกเปลี่ยนล่าสุดอัตโนมัติ
         async function fetchExchangeRate() {
             try {
                 const response = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -916,81 +925,70 @@
                 if (data && data.rates && data.rates.THB) {
                     exchangeRate = parseFloat(data.rates.THB);
                     document.getElementById('exchange-rate-input').value = exchangeRate.toFixed(2);
-                    document.getElementById('rate-source-badge').innerText = 'ดึงอัตโนมัติสำเร็จ';
-                    document.getElementById('rate-source-badge').className = 'text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full';
+                    document.getElementById('rate-source-badge').innerText = 'ระบบดึงอัตราแลกเปลี่ยนสด';
+                    document.getElementById('rate-source-badge').className = 'text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full';
                     updateStockDashboard();
                 }
             } catch (error) {
-                console.warn('ไม่สามารถดึงอัตราแลกเปลี่ยนอัตโนมัติได้ จะใช้อัตราแลกเปลี่ยนสำรอง: ', error);
-                document.getElementById('rate-source-badge').innerText = 'ใช้อัตราออฟไลน์';
-                document.getElementById('rate-source-badge').className = 'text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full';
+                console.warn('API ดึงค่าเงิน USD มีปัญหา ใช้อัตราสารสำรองแทน', error);
+                document.getElementById('rate-source-badge').innerText = 'ใช้อัตราเงินออฟไลน์สำรอง';
+                document.getElementById('rate-source-badge').className = 'text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full';
             }
         }
 
-        // จัดการเมื่อผู้ใช้พิมพ์เปลี่ยนค่าอัตราแลกเปลี่ยนเองในช่องกรอก
         function handleManualRateChange(value) {
             const parsed = parseFloat(value);
             if (!isNaN(parsed) && parsed > 0) {
                 exchangeRate = parsed;
-                document.getElementById('rate-source-badge').innerText = 'ปรับปรุงเอง';
-                document.getElementById('rate-source-badge').className = 'text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full';
+                document.getElementById('rate-source-badge').innerText = 'กำหนดค่ามือด้วยตนเอง';
+                document.getElementById('rate-source-badge').className = 'text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full';
                 updateStockDashboard();
             }
         }
 
-        // ดึงราคาตลาดล่าสุดแบบเรียลไทม์จาก Yahoo Finance API ผ่านช่องทางข้าม CORS
         async function fetchCurrentStockPrice(symbol, currency) {
             let yahooSymbol = symbol.trim().toUpperCase();
-            
             if (currency === 'THB' && !yahooSymbol.includes('.')) {
                 yahooSymbol += '.BK';
             }
-            
             const primaryProxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
-            
             try {
                 const response = await fetch(primaryProxyUrl);
-                if (!response.ok) throw new Error('Primary proxy failed');
+                if (!response.ok) throw new Error('Primary proxy failure');
                 const parsedData = await response.json();
-                
                 if (parsedData?.chart?.result?.[0]?.meta?.regularMarketPrice) {
                     return parsedData.chart.result[0].meta.regularMarketPrice;
                 } else {
-                    throw new Error('No quote found in primary results');
+                    throw new Error('No meta price found');
                 }
             } catch (primaryError) {
-                console.warn(`[FinFlow] ช่องทางหลักมีปัญหาสำหรับ ${yahooSymbol}, กำลังสลับไปช่องทางสำรอง...`, primaryError);
-                
                 const targetUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`);
                 const fallbackProxyUrl = `https://api.allorigins.win/get?url=${targetUrl}`;
-                
                 try {
                     const response = await fetch(fallbackProxyUrl);
-                    if (!response.ok) throw new Error('Fallback proxy failed');
+                    if (!response.ok) throw new Error('Fallback proxy failure');
                     const data = await response.json();
                     const parsedData = JSON.parse(data.contents);
-                    
                     if (parsedData?.chart?.result?.[0]?.meta?.regularMarketPrice) {
                         return parsedData.chart.result[0].meta.regularMarketPrice;
                     } else {
-                        throw new Error('No quote found in fallback results');
+                        throw new Error('Fallback failed');
                     }
                 } catch (fallbackError) {
-                    console.error(`[FinFlow] ไม่สามารถดึงราคาของหุ้น ${yahooSymbol} ได้ทั้งสองช่องทาง:`, fallbackError);
+                    console.error(`ไม่สามารถโหลดราคาสุดท้ายของ ${yahooSymbol} ได้:`, fallbackError);
                     return null;
                 }
             }
         }
 
-        // ดึงความเคลื่อนไหวราคาปัจจุบันสำหรับทุกหุ้นในพอร์ต
         async function refreshAllStockPrices(silent = false) {
             if (!auth.currentUser) return;
             if (stocks.length === 0) {
-                if (!silent) showToast("⚠️ ไม่มีหุ้นในพอร์ตเพื่อดึงราคา", "error");
+                if (!silent) showToast("⚠️ ไม่มีสินค้าหรือหุ้นในพอร์ตเพื่อซิงค์ราคา", "error");
                 return;
             }
 
-            if (!silent) showToast("🔄 กำลังดึงราคาตลาดปัจจุบันผ่าน Yahoo Finance...", "success");
+            if (!silent) showToast("🔄 กำลังซิงค์ราคาตลาดผ่าน Yahoo Finance...", "success");
 
             let updatedCount = 0;
             const promises = stocks.map(async (s) => {
@@ -1009,18 +1007,12 @@
                 const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.';
                 localStorage.setItem('finflow_stocks_last_updated', timeStr);
                 updateLastUpdatedDisplay(timeStr);
-                
-                if (!silent) {
-                    showToast(`✅ อัปเดตราคาล่าสุดแล้ว ${updatedCount}/${stocks.length} รายการ`, "success");
-                }
+                if (!silent) showToast(`✅ อัปเดตราคาพอร์ตเรียลไทม์สำเร็จ ${updatedCount}/${stocks.length} รายการ`, "success");
             } else {
-                if (!silent) {
-                    showToast("❌ ไม่สามารถอัปเดตราคาสดได้ชั่วคราว กรุณาลองอัปเดตใหม่อีกครั้ง", "error");
-                }
+                if (!silent) showToast("❌ ไม่สามารถดึงราคาล่าสุดได้ชั่วคราว กรุณาลองใหม่อีกครั้ง", "error");
             }
         }
 
-        // แท็บนำทาง
         function switchTab(tabId) {
             const dailyBtn = document.getElementById('tab-daily-btn');
             const stocksBtn = document.getElementById('tab-stocks-btn');
@@ -1030,8 +1022,8 @@
             const stocksContent = document.getElementById('stocks-tab-content');
             const monthlyContent = document.getElementById('monthly-tab-content');
 
-            const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 px-5 py-3 text-sm font-semibold flex items-center gap-2 transition duration-200";
-            const activeClass = "border-b-2 border-emerald-500 text-emerald-600 px-5 py-3 text-sm font-semibold flex items-center gap-2 transition duration-200";
+            const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 px-4 py-3.5 text-sm font-semibold flex items-center gap-2 transition duration-200";
+            const activeClass = "border-b-2 border-emerald-500 text-emerald-600 px-4 py-3.5 text-sm font-semibold flex items-center gap-2 transition duration-200";
             
             dailyBtn.className = inactiveClass;
             stocksBtn.className = inactiveClass;
@@ -1055,7 +1047,6 @@
             }
         }
 
-        // สลับประเภทบันทึกรายวัน
         function toggleTxType(type) {
             activeTxType = type;
             const incomeLabel = document.getElementById('type-income-label');
@@ -1068,11 +1059,9 @@
                 incomeLabel.className = "relative flex items-center justify-center p-3 border rounded-xl cursor-pointer transition duration-200 bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
                 expenseLabel.className = "relative flex items-center justify-center p-3 border rounded-xl cursor-pointer transition duration-200 bg-rose-50 bg-opacity-40 border-rose-400 text-rose-700";
             }
-
             updateCategoryOptions();
         }
 
-        // อัปเดตตัวเลือกหมวดหมู่ตามประเภทธุรกรรม
         function updateCategoryOptions() {
             categorySelect.innerHTML = '';
             categories[activeTxType].forEach(cat => {
@@ -1083,14 +1072,12 @@
             });
         }
 
-        // ดึงข้อมูลหมวดหมู่
         function getCategoryDetails(type, catId) {
             const list = categories[type];
             const found = list.find(c => c.id === catId);
             return found || { name: 'อื่นๆ', icon: '📝', color: '#94a3b8' };
         }
 
-        // คำนวณสรุปรายรับรายจ่ายและอัปเดตหน้าหลัก
         function updateDashboard() {
             let incomeTotal = 0;
             let expenseTotal = 0;
@@ -1118,23 +1105,18 @@
 
             if (balance < 0) {
                 totalBalanceEl.className = "text-3xl font-bold tracking-tight text-rose-400";
-                balanceSubtext.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-rose-400"></span> ยอดใช้จ่ายเกินรายรับ ควรระวังการใช้เงิน!`;
-            } else if (balance === 0 && transactions.length > 0) {
-                totalBalanceEl.className = "text-3xl font-bold tracking-tight text-slate-300";
-                balanceSubtext.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-slate-400"></span> ยอดเงินคงเหลือเป็นศูนย์พอดี`;
+                balanceSubtext.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-rose-400"></span> ยอดค่าใช้จ่ายรวมเกินรายได้ในระบบแล้ว`;
             } else {
                 totalBalanceEl.className = "text-3xl font-bold tracking-tight text-emerald-400";
-                balanceSubtext.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> สถานะการเงินเป็นบวก ดีมาก!`;
+                balanceSubtext.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> สถานะการเงินคงเหลือมีสภาพคล่องสูง`;
             }
 
             applyFilters();
-            
             if (!document.getElementById('monthly-tab-content').classList.contains('hidden')) {
                 updateMonthlyReports();
             }
         }
 
-        // กรองข้อมูลประวัติในตาราง
         function applyFilters() {
             const keyword = searchInput.value.toLowerCase().trim();
             const selectedType = filterTypeSelect.value;
@@ -1169,10 +1151,8 @@
             updateChartData();
         }
 
-        // เรนเดอร์ตารางรายการธุรกรรม
         function renderTable(dataList) {
             tableBody.innerHTML = '';
-
             if (dataList.length === 0) {
                 noTransactionsState.classList.remove('hidden');
                 return;
@@ -1184,7 +1164,7 @@
 
             sortedList.forEach((t) => {
                 const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 transition duration-150";
+                row.className = "hover:bg-slate-50 transition duration-150 border-b border-slate-100";
 
                 const catDetails = getCategoryDetails(t.type, t.category);
                 const formattedAmount = t.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1196,7 +1176,7 @@
                 row.innerHTML = `
                     <td class="px-4 py-3.5 whitespace-nowrap">
                         <div class="text-xs font-semibold text-slate-400">${formattedDate}</div>
-                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-full text-xs font-medium" style="background-color: ${catDetails.color}15; color: ${catDetails.color}">
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-full text-[10px] font-bold" style="background-color: ${catDetails.color}15; color: ${catDetails.color}">
                             <span>${catDetails.icon}</span>
                             <span>${catDetails.name}</span>
                         </div>
@@ -1211,10 +1191,8 @@
                         </span>
                     </td>
                     <td class="px-4 py-3.5 text-center whitespace-nowrap">
-                        <button onclick="openDeleteModal('${t.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition duration-150" title="ลบรายการ">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                        <button onclick="openDeleteModal('${t.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition duration-150">
+                            🗑️
                         </button>
                     </td>
                 `;
@@ -1222,7 +1200,6 @@
             });
         }
 
-        // ส่งฟอร์มบันทึกธุรกรรมลง Firestore (แทน LocalStorage)
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!auth.currentUser || !txCollectionRef) return;
@@ -1247,10 +1224,10 @@
                     category,
                     note: note || null
                 });
-                showToast("📝 บันทึกรายการสำเร็จ", "success");
+                showToast("📝 บันทึกประวัติรายการสำเร็จ", "success");
             } catch (err) {
-                console.error("Firestore save error:", err);
-                showToast("❌ เกิดข้อผิดพลาดในการบันทึก", "error");
+                console.error("Firebase save error:", err);
+                showToast("❌ เกิดปัญหาทางเทคนิคในการเซฟลง Cloud", "error");
             }
 
             descriptionInput.value = '';
@@ -1259,7 +1236,6 @@
             dateInput.value = new Date().toISOString().split('T')[0];
         });
 
-        // ฟอร์แมตสกุลเงิน
         function formatVal(value, currency = portfolioDisplayCurrency) {
             const sym = currency === 'THB' ? '฿' : '$';
             const absoluteValue = Math.abs(value);
@@ -1268,7 +1244,6 @@
             return currency === 'THB' ? `${sign}${valStr} ${sym}` : `${sign}${sym}${valStr}`;
         }
 
-        // จัดการแปลงการแสดงผลสกุลเงิน
         function changeDisplayCurrency(currency) {
             portfolioDisplayCurrency = currency;
             const btnThb = document.getElementById('display-currency-thb');
@@ -1280,20 +1255,19 @@
             if (currency === 'THB') {
                 btnThb.className = activeClass;
                 btnUsd.className = inactiveClass;
-                document.getElementById('th-cost-price').innerText = 'ต้นทุนซื้อต่อหุ้น / ค่าธรรมเนียม';
-                document.getElementById('th-current-price').innerText = 'ราคาตลาดปัจจุบัน';
-                document.getElementById('th-current-val').innerText = 'มูลค่ารวมปัจจุบัน';
+                document.getElementById('th-cost-price').innerText = 'ต้นทุนซื้อต่อหุ้น / รวมค่าฟี';
+                document.getElementById('th-current-price').innerText = 'ราคาตลาดสด';
+                document.getElementById('th-current-val').innerText = 'มูลค่ารวม';
             } else {
                 btnThb.className = inactiveClass;
                 btnUsd.className = activeClass;
-                document.getElementById('th-cost-price').innerText = 'ต้นทุนซื้อต่อหุ้น ($) / ค่าธรรมเนียม ($)';
-                document.getElementById('th-current-price').innerText = 'ราคาตลาดปัจจุบัน ($)';
-                document.getElementById('th-current-val').innerText = 'มูลค่ารวมปัจจุบัน ($)';
+                document.getElementById('th-cost-price').innerText = 'ต้นทุนต่อหุ้น ($) / รวมค่าฟี';
+                document.getElementById('th-current-price').innerText = 'ราคาตลาดสด ($)';
+                document.getElementById('th-current-val').innerText = 'มูลค่ารวม ($)';
             }
             updateStockDashboard();
         }
 
-        // สลับสกุลเงินซื้อขายในฟอร์มหุ้น
         function toggleStockCurrency(curr) {
             activeStockCurrency = curr;
             const thbLabel = document.getElementById('curr-thb-label');
@@ -1315,11 +1289,10 @@
             }
         }
 
-        // เปิดป๊อปอัปพอร์ตหุ้น
         function openStockModal(stockId = null) {
             document.getElementById('stock-form').reset();
             document.getElementById('stock-edit-id').value = '';
-            document.getElementById('stock-modal-title').innerText = '📈 บันทึกรายการถือครองหุ้น';
+            document.getElementById('stock-modal-title').innerText = '📈 บันทึกข้อมูลสินทรัพย์ลงทุน';
             toggleStockCurrency('THB');
 
             if (stockId) {
@@ -1333,7 +1306,7 @@
                     document.getElementById('stock-fee').value = s.fee;
                     document.getElementById('stock-current-price').value = s.currentPrice || '';
                     toggleStockCurrency(s.currency);
-                    document.getElementById('stock-modal-title').innerText = '✏️ แก้ไขข้อมูลหุ้นในพอร์ต';
+                    document.getElementById('stock-modal-title').innerText = '✏️ แก้ไขข้อมูลพอร์ตการถือครอง';
                 }
             }
             document.getElementById('stock-modal').classList.remove('hidden');
@@ -1343,7 +1316,6 @@
             document.getElementById('stock-modal').classList.add('hidden');
         }
 
-        // ส่งข้อมูลหุ้นขึ้นคลาวด์ Firestore
         document.getElementById('stock-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!auth.currentUser || !stockCollectionRef) return;
@@ -1374,20 +1346,18 @@
                         fee,
                         currentPrice
                     });
-                    showToast("✏️ แก้ไขข้อมูลหุ้นสำเร็จ", "success");
-                    
+                    showToast("✏️ แก้ไขข้อมูลสินทรัพย์พอร์ตสำเร็จ", "success");
                     const livePrice = await fetchCurrentStockPrice(symbol, activeStockCurrency);
                     if (livePrice !== null) {
                         await updateDoc(docRef, { currentPrice: livePrice });
                     }
                 } catch (err) {
-                    console.error("Firestore update stock error:", err);
+                    console.error(err);
                 }
             } else {
                 try {
                     const docId = generateId();
                     const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', docId);
-                    
                     await setDoc(docRef, {
                         symbol,
                         broker,
@@ -1397,19 +1367,17 @@
                         fee,
                         currentPrice
                     });
-                    showToast("📈 เพิ่มหุ้นเข้าพอร์ตสำเร็จ", "success");
-                    
+                    showToast("📈 เพิ่มสินทรัพย์เข้าพอร์ตลงทุนสำเร็จ", "success");
                     const livePrice = await fetchCurrentStockPrice(symbol, activeStockCurrency);
                     if (livePrice !== null) {
                         await updateDoc(docRef, { currentPrice: livePrice });
                     }
                 } catch (err) {
-                    console.error("Firestore add stock error:", err);
+                    console.error(err);
                 }
             }
         });
 
-        // เปิดป๊อปอัปยืนยันการลบหุ้น
         function openDeleteStockModal(id) {
             deletingStockId = id;
             const s = stocks.find(item => item.id === id);
@@ -1423,9 +1391,9 @@
                     try {
                         const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', deletingStockId);
                         await deleteDoc(docRef);
-                        showToast("🗑️ ลบหุ้นออกจากพอร์ตเรียบร้อยแล้ว", "success");
+                        showToast("🗑️ ลบหุ้นออกจากรายงานพอร์ตสำเร็จ", "success");
                     } catch (err) {
-                        console.error("Delete stock error:", err);
+                        console.error(err);
                     }
                     closeDeleteStockModal();
                 }
@@ -1437,7 +1405,6 @@
             deletingStockId = null;
         }
 
-        // อัปเดตราคาหุ้นรายตัวแบบด่วนจากตารางโดยตรง
         async function updateSingleStockPrice(id, newPrice) {
             const parsed = parseFloat(newPrice);
             if (!isNaN(parsed) && parsed >= 0 && auth.currentUser) {
@@ -1450,7 +1417,6 @@
             }
         }
 
-        // คำนวณสรุปพอร์ตโฟลิโอและพอร์ตการลงทุน
         function calculatePortfolioTotalsOnly() {
             let totalCostInDisplayCurrency = 0;
             let currentValInDisplayCurrency = 0;
@@ -1521,7 +1487,6 @@
             }
         }
 
-        // แสดงพอร์ตหุ้นบนหน้าจอ
         function updateStockDashboard() {
             calculatePortfolioTotalsOnly();
             document.getElementById('total-stocks-held').textContent = `${stocks.length} รายการ`;
@@ -1576,27 +1541,27 @@
                 row.innerHTML = `
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-2">
-                            <span class="p-1 bg-gradient-to-tr from-slate-100 to-slate-200 rounded-lg text-xs">📈</span>
+                            <span class="p-1 bg-gradient-to-tr from-slate-100 to-slate-200 rounded-lg text-xs">📊</span>
                             <div>
                                 <span class="text-sm font-bold text-slate-900 block">${s.symbol}</span>
-                                <span class="text-[10px] text-slate-400 uppercase font-semibold">สกุลเงิน: ${s.currency}</span>
+                                <span class="text-[9px] text-slate-400 font-semibold uppercase">สกุล: ${s.currency}</span>
                             </div>
                         </div>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="px-2.5 py-1 text-xs font-semibold rounded-lg ${brokerBadge}">
+                        <span class="px-2.5 py-1 text-[10px] font-bold rounded-lg ${brokerBadge}">
                             ${s.broker}
                         </span>
                     </td>
                     <td class="px-4 py-4 text-right font-semibold text-slate-800 whitespace-nowrap">
-                        ${s.qty.toLocaleString('th-TH', { maximumFractionDigits: 4 })} หุ้น
+                        ${s.qty.toLocaleString('th-TH', { maximumFractionDigits: 4 })}
                     </td>
                     <td class="px-4 py-4 text-right whitespace-nowrap">
                         <div class="text-xs font-bold text-slate-700">
                             ${s.buyPrice.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${s.currency === 'THB' ? '฿' : '$'}
                         </div>
                         <div class="text-[10px] text-slate-400 mt-0.5">
-                            ค่าฟี: ${s.fee.toLocaleString('th-TH', { maximumFractionDigits: 2 })} ${s.currency === 'THB' ? '฿' : '$'}
+                            ฟี: ${s.fee.toLocaleString('th-TH', { maximumFractionDigits: 2 })} ${s.currency === 'THB' ? '฿' : '$'}
                         </div>
                     </td>
                     <td class="px-4 py-4 text-right whitespace-nowrap">
@@ -1605,7 +1570,7 @@
                                    value="${s.currentPrice}" 
                                    oninput="updateSingleStockPrice('${s.id}', this.value)" 
                                    class="w-20 bg-transparent text-right font-bold focus:outline-none focus:ring-1 focus:ring-emerald-300 rounded text-xs text-slate-800">
-                            <span class="text-[10px] font-semibold text-slate-400">${s.currency}</span>
+                            <span class="text-[9px] font-semibold text-slate-400">${s.currency}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-right font-bold text-slate-900 whitespace-nowrap">
@@ -1615,16 +1580,16 @@
                         <div class="${gainTextClass}">
                             ${gainIndicator}${formatVal(displayGain)}
                         </div>
-                        <div class="text-[10px] ${displayGain >= 0 ? 'text-emerald-500' : 'text-rose-500'} font-semibold mt-0.5">
+                        <div class="text-[9px] ${displayGain >= 0 ? 'text-emerald-500' : 'text-rose-500'} font-bold mt-0.5">
                             ${gainIndicator}${gainPct.toFixed(2)}%
                         </div>
                     </td>
                     <td class="px-4 py-4 text-center whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
-                            <button onclick="openStockModal('${s.id}')" class="text-slate-400 hover:text-slate-800 p-1 rounded-lg hover:bg-slate-100 transition" title="แก้ไขรายการ">
+                            <button onclick="openStockModal('${s.id}')" class="text-slate-400 hover:text-slate-800 p-1 rounded-lg hover:bg-slate-100 transition">
                                 ✏️
                             </button>
-                            <button onclick="openDeleteStockModal('${s.id}')" class="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition" title="ลบรายการ">
+                            <button onclick="openDeleteStockModal('${s.id}')" class="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition">
                                 🗑️
                             </button>
                         </div>
@@ -1634,19 +1599,17 @@
             });
         }
 
-        // ป๊อปอัปยืนยันการลบรายการปกติ
         function openDeleteModal(id) {
             const t = transactions.find(item => item.id === id);
             if (t) {
                 document.getElementById('delete-target-desc').textContent = t.description;
                 document.getElementById('delete-modal').classList.remove('hidden');
-
                 document.getElementById('confirm-delete-btn').onclick = async function() {
                     if (auth.currentUser) {
                         try {
                             const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'transactions', id);
                             await deleteDoc(docRef);
-                            showToast("🗑️ ลบรายการเรียบร้อย", "success");
+                            showToast("🗑️ ลบประวัติเรียบร้อย", "success");
                         } catch (err) {
                             console.error(err);
                         }
@@ -1660,7 +1623,6 @@
             document.getElementById('delete-modal').classList.add('hidden');
         }
 
-        // จัดการหน้าต่างล้างฐานข้อมูลทั้งหมด
         function openClearModal() {
             document.getElementById('clear-modal').classList.remove('hidden');
         }
@@ -1669,11 +1631,9 @@
             document.getElementById('clear-modal').classList.add('hidden');
         }
 
-        // ล้างข้อมูลทั้งหมดทั้งระบบจาก Firebase (RULE 2 - ลูปและทำลายเป็นรายตัว)
         async function clearAllData() {
             if (!auth.currentUser) return;
-            showToast("⏳ กำลังทำการเคลียร์ฐานข้อมูลทั้งหมด...", "success");
-
+            showToast("⏳ กำลังทำการเคลียร์ฐานข้อมูลเรียลไทม์...", "success");
             try {
                 const promises = [];
                 transactions.forEach(t => {
@@ -1685,24 +1645,21 @@
                     promises.push(deleteDoc(docRef));
                 });
                 await Promise.all(promises);
-                
                 localStorage.removeItem('finflow_stocks_last_updated');
                 updateLastUpdatedDisplay(null);
                 closeClearModal();
-                showToast("🗑️ ล้างข้อมูลคลาวด์ทั้งหมดสำเร็จแล้ว", "success");
+                showToast("🗑️ เคลียร์ข้อมูลคลาวด์เสร็จสิ้น", "success");
             } catch (err) {
-                console.error("Clear database failure:", err);
-                showToast("❌ เคลียร์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", "error");
+                console.error(err);
+                showToast("❌ เคลียร์ระบบล้มเหลว", "error");
             }
         }
 
-        // ฟังก์ชันแสดง Toast แจ้งเตือนข้อความบนจออย่างสวยงาม
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
-            toast.className = `fixed bottom-5 right-5 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm transition-opacity duration-300 ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`;
+            toast.className = `fixed bottom-5 right-5 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-xs sm:text-sm font-semibold transition-opacity duration-300 ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`;
             toast.innerText = message;
             document.body.appendChild(toast);
-            
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
@@ -1713,7 +1670,6 @@
             document.getElementById('import-csv-input').click();
         }
 
-        // แกะข้อมูล CSV และเพิ่มลง Firestore คลาวด์
         async function handleCSVImport(event) {
             if (!auth.currentUser) return;
             const file = event.target.files[0];
@@ -1723,9 +1679,8 @@
             reader.onload = async function(e) {
                 const text = e.target.result;
                 const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
-                
                 if (lines.length <= 1) {
-                    showToast("⚠️ ไฟล์ CSV ไม่มีข้อมูลสำหรับนำเข้า", "error");
+                    showToast("⚠️ ไม่พบข้อมูลนำเข้าในไฟล์ CSV", "error");
                     return;
                 }
 
@@ -1752,7 +1707,6 @@
                     }
 
                     const category = findCategoryId(type, catName);
-
                     const tx = {
                         id: generateId(),
                         description,
@@ -1793,25 +1747,20 @@
                             });
                         });
                         await Promise.all(promises);
-
-                        let successMsg = `✅ นำเข้าข้อมูลสำเร็จ ${importedCount} รายการ!`;
-                        if (duplicateCount > 0) {
-                            successMsg += ` (ข้ามข้อมูลซ้ำ ${duplicateCount} รายการ)`;
-                        }
+                        let successMsg = `✅ นำเข้าสำเร็จ ${importedCount} รายการ!`;
+                        if (duplicateCount > 0) successMsg += ` (ข้ามข้อมูลซ้ำ ${duplicateCount})`;
                         showToast(successMsg, "success");
                     } catch (err) {
                         console.error(err);
-                        showToast("❌ ไม่สามารถนำเข้าข้อมูลได้สมบูรณ์", "error");
+                        showToast("❌ มีข้อผิดพลาดในระบบการนำเข้าข้อมูลคลาวด์", "error");
                     }
                 } else if (duplicateCount > 0) {
-                    showToast(`⚠️ ทุกรายการซ้ำกับฐานข้อมูลเดิมแล้ว (ข้าม ${duplicateCount} รายการ)`, "error");
+                    showToast(`⚠️ ข้อมูลทุกรายการซ้ำกับฐานข้อมูลเดิมแล้ว`, "error");
                 } else {
-                    showToast("⚠️ ไม่พบข้อมูลที่ถูกต้องในการนำเข้า", "error");
+                    showToast("⚠️ ไม่พบข้อมูลนำเข้าที่ถูกต้อง", "error");
                 }
-
                 event.target.value = '';
             };
-
             reader.readAsText(file, 'UTF-8');
         }
 
@@ -1839,10 +1788,9 @@
             return found ? found.id : (type === 'income' ? 'other-income' : 'other-expense');
         }
 
-        // ฟังก์ชันในการส่งออกข้อมูล (Export) เป็น CSV
         function exportData(format) {
             if (transactions.length === 0) {
-                showToast("⚠️ ไม่มีรายการธุรกรรมที่จะส่งออกข้อมูล", "error");
+                showToast("⚠️ ไม่มีข้อมูลรายการบันทึกสำหรับการส่งออก", "error");
                 return;
             }
 
@@ -1865,14 +1813,12 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                showToast("📥 ส่งออกข้อมูลสำเร็จ!", "success");
+                showToast("📥 ส่งออกรายงาน CSV เรียบร้อยแล้ว", "success");
             }
         }
 
-        // เริ่มต้นการเรนเดอร์ Chart.js Doughnut รายสัดส่วนรายจ่าย
         function initChart() {
             const ctx = document.getElementById('categoryChart').getContext('2d');
-            
             categoryChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -1894,10 +1840,7 @@
                             labels: {
                                 boxWidth: 12,
                                 padding: 10,
-                                font: {
-                                    family: 'Prompt',
-                                    size: 11
-                                }
+                                font: { family: 'Prompt', size: 10 }
                             }
                         },
                         tooltip: {
@@ -1915,7 +1858,6 @@
             updateChartData();
         }
 
-        // อัปเดตข้อมูลกราฟรายสัดส่วน
         function updateChartData() {
             if (!categoryChart) return;
 
@@ -1955,7 +1897,6 @@
             categoryChart.update();
         }
 
-        // จัดการและจัดกลุ่มรายงานสำหรับรายงานสรุปรายเดือน
         function updateMonthlyReports() {
             const monthlyData = {};
 
@@ -2029,11 +1970,11 @@
                 row.className = "hover:bg-slate-50 transition duration-150 border-b border-slate-100";
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">${displayMonth}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-emerald-600 font-semibold">+${income.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-rose-500 font-semibold">-${expense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold ${balance >= 0 ? 'text-slate-800' : 'text-rose-600'}">${balance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-emerald-600 font-semibold">+${income.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-rose-500 font-semibold">-${expense.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold ${balance >= 0 ? 'text-slate-800' : 'text-rose-600'}">${balance.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${balance >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${balance >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
                             ${savingsRateText}
                         </span>
                     </td>
@@ -2043,12 +1984,12 @@
 
             if (bestSavingsMonthKey) {
                 document.getElementById('best-savings-month').textContent = formatThaiMonth(bestSavingsMonthKey);
-                document.getElementById('best-savings-amount').textContent = `${bestSavings.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+                document.getElementById('best-savings-amount').textContent = `${bestSavings.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿`;
             }
 
             const avgSavingsVal = totalSavingsSum / sortedMonths.length;
             const avgSavingsPct = totalIncomeSum > 0 ? ((totalSavingsSum / totalIncomeSum) * 100) : 0;
-            document.getElementById('avg-savings').textContent = `${avgSavingsVal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
+            document.getElementById('avg-savings').textContent = `${avgSavingsVal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿`;
             document.getElementById('avg-savings-pct').textContent = `อัตราการออมเฉลี่ย: ${avgSavingsPct.toFixed(1)}%`;
 
             const chartLabels = sortedMonths.map(key => formatThaiMonth(key));
@@ -2085,36 +2026,25 @@
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: {
-                                font: {
-                                    family: 'Prompt',
-                                    size: 11
-                                }
-                            }
+                            labels: { font: { family: 'Prompt', size: 11 } }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                font: {
-                                    family: 'Prompt'
-                                }
-                            }
+                            ticks: { font: { family: 'Prompt' } }
                         },
                         x: {
-                            ticks: {
-                                font: {
-                                    family: 'Prompt'
-                                }
-                            }
+                            ticks: { font: { family: 'Prompt' } }
                         }
                     }
                 }
             });
         }
 
-        // เผยแพร่ฟังก์ชันเข้าสู่โกลบอลสโคป (Window) เพื่อรองรับ Event Listener บนหน้า HTML เดิมทั้งหมด
+        // เชื่อมโยงฟังก์ชันเข้าระบบ Global ของเบราว์เซอร์
+        window.handleGoogleSignIn = handleGoogleSignIn;
+        window.handleSignOut = handleSignOut;
         window.triggerCSVImport = triggerCSVImport;
         window.handleCSVImport = handleCSVImport;
         window.exportData = exportData;
