@@ -11,7 +11,7 @@
     <!-- Google Fonts - Prompt -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght=300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Prompt', sans-serif;
@@ -398,7 +398,7 @@
                             <span>ยังไม่ได้ดึงราคาสด</span>
                         </div>
 
-                        <!-- ปุ่มดึงราคาอัตโนมัติ (แก้ไขพาธรูปภาพและฟอนต์ SVG ไอคอนให้สมบูรณ์) -->
+                        <!-- ปุ่มดึงราคาอัตโนมัติ -->
                         <button onclick="refreshAllStockPrices()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-semibold text-sm transition duration-150 flex items-center justify-center gap-1.5 border border-slate-200">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -681,7 +681,7 @@
                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                         <h3 class="text-lg leading-6 font-bold text-slate-900">ล้างประวัติการเงินทั้งหมด?</h3>
                         <div class="mt-2">
-                            <p class="text-sm text-slate-500">การกระทำนี้จะลบรายการบัญชีและพอร์ตการลงทุนทั้งหมดที่บันทึกไว้ในเบราว์เซอร์นี้อย่างถาวร ยอดเงินทั้งหมดจะถูกรีเซ็ตเป็นศูนย์</p>
+                            <p class="text-sm text-slate-500">การกระทำนี้จะลบรายการบัญชีและพอร์ตการลงทุนทั้งหมดที่บันทึกไว้ในระบบ Cloud ประจำบัญชีนี้อย่างถาวร ยอดเงินทั้งหมดจะถูกรีเซ็ตเป็นศูนย์</p>
                         </div>
                     </div>
                 </div>
@@ -693,8 +693,31 @@
         </div>
     </div>
 
-    <!-- สคริปต์การทำงานของแอปพลิเคชัน -->
-    <script>
+    <!-- สคริปต์การทำงานหลักของแอปพลิเคชันพ่วงโมดูลคลาวด์จัดเก็บข้อมูลของ Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // คอนฟิกูเรชัน Firebase จากผู้ใช้งาน
+        const firebaseConfig = {
+            apiKey: "AIzaSyBl9Sd4w3Rv74qXi2AyijZa8XyDQQ6gJsQ",
+            authDomain: "finflow-expense.firebaseapp.com",
+            projectId: "finflow-expense",
+            storageBucket: "finflow-expense.firebasestorage.app",
+            messagingSenderId: "670726363251",
+            appId: "1:670726363251:web:802f743373e7204fe4f206"
+        };
+
+        // ตั้งค่าตัวแปรระดับโกลบอลของ Sandbox เพื่อให้ยืดหยุ่น
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'finflow-expense';
+        const configToUse = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
+
+        // เริ่มต้นการเชื่อมต่อ Firebase SDK
+        const app = initializeApp(configToUse);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
         // หมวดหมู่เริ่มต้นสำหรับรายรับและรายจ่ายพร้อมสีและไอคอน
         const categories = {
             income: [
@@ -717,9 +740,9 @@
             ]
         };
 
-        // โหลดข้อมูลเริ่มต้นจาก Local Storage
-        let transactions = JSON.parse(localStorage.getItem('finflow_transactions')) || [];
-        let stocks = JSON.parse(localStorage.getItem('finflow_stocks')) || [];
+        // ตัวแปรเก็บสถานะรายการ (ข้อมูลจริงจะดึงเรียลไทม์ผ่าน Firebase onSnapshot)
+        let transactions = [];
+        let stocks = [];
         
         let activeTxType = 'income'; // ประเภทที่เลือกอยู่เริ่มต้น
         let activeStockCurrency = 'THB'; // สกุลเงินเริ่มต้นในฟอร์มหาสินทรัพย์
@@ -761,7 +784,13 @@
         const filterTypeSelect = document.getElementById('filter-type');
         const filterMonthSelect = document.getElementById('filter-month');
 
-        // ฟังก์ชันสร้าง ID ป้องกันข้อผิดพลาด crypto.randomUUID ของเบราว์เซอร์
+        // References references references ของคอลเลกชัน Firestore ที่สัมพันธ์กับ User ID
+        let txCollectionRef = null;
+        let stockCollectionRef = null;
+        let unsubscribeTx = null;
+        let unsubscribeStocks = null;
+
+        // ฟังก์ชันในการสร้าง ID ป้องกันข้อผิดพลาดของ browser sandbox
         function generateId() {
             if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.randomUUID === 'function') {
                 return window.crypto.randomUUID();
@@ -769,7 +798,65 @@
             return Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 9);
         }
 
-        // ฟังก์ชันจัดฟอร์แมตวันที่ภาษาไทย (แก้บั๊กสรุปรายงานไม่แสดงผล)
+        // ตัวจัดการยืนยันตัวตนก่อนการดึงข้อมูล (RULE 3)
+        async function authenticateAndSync() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.warn("Auth error, attempting anonymous fall-back", err);
+                await signInAnonymously(auth);
+            }
+        }
+
+        // จัดการสถานะการล็อกอินและเริ่ม Real-time Sync
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userId = user.uid;
+                
+                // กำหนดโครงสร้างพาทตามกฎ RULE 1
+                txCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'transactions');
+                stockCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'stocks');
+
+                // เริ่มฟังก์ชัน onSnapshot
+                setupSnapshotListeners();
+            }
+        });
+
+        // ฟังก์ชัน Snapshot ในการตรวจจับความเคลื่อนไหวข้อมูลบนคลาวด์และเรนเดอร์ UI อัตโนมัติ (RULE 2)
+        function setupSnapshotListeners() {
+            if (unsubscribeTx) unsubscribeTx();
+            if (unsubscribeStocks) unsubscribeStocks();
+
+            // ตรวจจับรายการบัญชี
+            unsubscribeTx = onSnapshot(txCollectionRef, (snapshot) => {
+                const items = [];
+                snapshot.forEach(doc => {
+                    items.push({ id: doc.id, ...doc.data() });
+                });
+                transactions = items;
+                updateDashboard();
+            }, (error) => {
+                console.error("Firestore transaction query failure:", error);
+            });
+
+            // ตรวจจับพอร์ตหุ้น
+            unsubscribeStocks = onSnapshot(stockCollectionRef, (snapshot) => {
+                const items = [];
+                snapshot.forEach(doc => {
+                    items.push({ id: doc.id, ...doc.data() });
+                });
+                stocks = items;
+                updateStockDashboard();
+            }, (error) => {
+                console.error("Firestore stock query failure:", error);
+            });
+        }
+
+        // ฟังก์ชันจัดฟอร์แมตวันที่ภาษาไทย
         function formatThaiMonth(yearMonthStr) {
             const parts = yearMonthStr.split('-');
             if (parts.length < 2) return yearMonthStr;
@@ -780,7 +867,7 @@
             return `${monthName} ${thaiYear}`;
         }
 
-        // ฟังก์ชันอัปเดตช่องแสดงสถานะการอัปเดตราคาล่าสุด
+        // อัปเดตตารางระบุเวลาดึงข้อมูลราคาสต็อกล่าสุด
         function updateLastUpdatedDisplay(timeStr) {
             const el = document.getElementById('last-stock-update-time');
             if (el) {
@@ -800,28 +887,25 @@
             }
         }
 
-        // เรียกใช้ฟังก์ชันแรกเพื่อตั้งค่าแอปพลิเคชัน
-        window.addEventListener('DOMContentLoaded', () => {
+        // เรียกใช้งานฟังก์ชันเริ่มต้นเมื่อเบราว์เซอร์พร้อมทำงาน
+        window.addEventListener('DOMContentLoaded', async () => {
             // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
             const today = new Date().toISOString().split('T')[0];
             dateInput.value = today;
 
             updateCategoryOptions();
-            updateDashboard();
             initChart();
             toggleStockCurrency('THB');
+
+            // เริ่มทำการ Authen และดึงข้อมูล Sync กับ Firebase
+            await authenticateAndSync();
             
-            // พยายามดึงอัตราแลกเปลี่ยนปัจจุบันจากเว็บ API สาธารณะ
+            // ดึงอัตราแลกเปลี่ยน
             fetchExchangeRate();
 
-            // โหลดและแสดงประวัติอัปเดตราคาหุ้นล่าสุด
+            // ดึงข้อมูลเวลาการอัปเดตหุ้นล่าสุด
             const savedTime = localStorage.getItem('finflow_stocks_last_updated');
             updateLastUpdatedDisplay(savedTime);
-
-            // พยายามดึงราคาหุ้นอัตโนมัติหากมีรายการในพอร์ต
-            if (stocks.length > 0) {
-                refreshAllStockPrices(true); // silent refresh on load
-            }
         });
 
         // ดึงอัตราแลกเปลี่ยนล่าสุดอัตโนมัติ
@@ -854,16 +938,14 @@
             }
         }
 
-        // ฟังก์ชันดึงราคาหุ้นปัจจุบันแบบเรียลไทม์ผ่าน Yahoo Finance API พ่วงระบบข้าม CORS (CORS Proxy Multi-Stage)
+        // ดึงราคาตลาดล่าสุดแบบเรียลไทม์จาก Yahoo Finance API ผ่านช่องทางข้าม CORS
         async function fetchCurrentStockPrice(symbol, currency) {
             let yahooSymbol = symbol.trim().toUpperCase();
             
-            // จัดการนามสกุลหุ้นไทยอัติโนมัติ หากผู้ใช้ไม่ได้กรอก .BK หรือ .SET
             if (currency === 'THB' && !yahooSymbol.includes('.')) {
                 yahooSymbol += '.BK';
             }
             
-            // ช่องทางที่ 1 (หลัก): ใช้ corsproxy.io ดึงข้อมูล JSON ตรงจาก Yahoo Finance (ประมวลผลเร็วขึ้น 10 เท่า)
             const primaryProxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
             
             try {
@@ -871,7 +953,6 @@
                 if (!response.ok) throw new Error('Primary proxy failed');
                 const parsedData = await response.json();
                 
-                // แกะข้อมูลราคาสุดท้าย (regularMarketPrice)
                 if (parsedData?.chart?.result?.[0]?.meta?.regularMarketPrice) {
                     return parsedData.chart.result[0].meta.regularMarketPrice;
                 } else {
@@ -880,7 +961,6 @@
             } catch (primaryError) {
                 console.warn(`[FinFlow] ช่องทางหลักมีปัญหาสำหรับ ${yahooSymbol}, กำลังสลับไปช่องทางสำรอง...`, primaryError);
                 
-                // ช่องทางที่ 2 (สำรอง): ใช้ allorigins ข้ามสิทธิ์ CORS
                 const targetUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`);
                 const fallbackProxyUrl = `https://api.allorigins.win/get?url=${targetUrl}`;
                 
@@ -902,8 +982,9 @@
             }
         }
 
-        // ฟังก์ชันดึงราคาหุ้นแบบกลุ่ม (Batch) เพื่อดึงความเคลื่อนไหวราคาปัจจุบันสำหรับทุกหุ้นในพอร์ต
+        // ดึงความเคลื่อนไหวราคาปัจจุบันสำหรับทุกหุ้นในพอร์ต
         async function refreshAllStockPrices(silent = false) {
+            if (!auth.currentUser) return;
             if (stocks.length === 0) {
                 if (!silent) showToast("⚠️ ไม่มีหุ้นในพอร์ตเพื่อดึงราคา", "error");
                 return;
@@ -915,17 +996,15 @@
             const promises = stocks.map(async (s) => {
                 const livePrice = await fetchCurrentStockPrice(s.symbol, s.currency);
                 if (livePrice !== null && !isNaN(livePrice) && livePrice > 0) {
-                    s.currentPrice = livePrice;
+                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', s.id);
+                    await updateDoc(docRef, { currentPrice: livePrice });
                     updatedCount++;
                 }
             });
 
             await Promise.all(promises);
-            saveStocksToLocalStorage();
-            updateStockDashboard();
 
             if (updatedCount > 0) {
-                // บันทึกเวลาที่ทำการดึงสำเร็จลง LocalStorage
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' น.';
                 localStorage.setItem('finflow_stocks_last_updated', timeStr);
@@ -941,7 +1020,7 @@
             }
         }
 
-        // ฟังก์ชันสลับหน้าแท็บทำงาน
+        // แท็บนำทาง
         function switchTab(tabId) {
             const dailyBtn = document.getElementById('tab-daily-btn');
             const stocksBtn = document.getElementById('tab-stocks-btn');
@@ -951,7 +1030,6 @@
             const stocksContent = document.getElementById('stocks-tab-content');
             const monthlyContent = document.getElementById('monthly-tab-content');
 
-            // รีเซ็ตคลาสปุ่มทั้งหมดก่อน
             const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 px-5 py-3 text-sm font-semibold flex items-center gap-2 transition duration-200";
             const activeClass = "border-b-2 border-emerald-500 text-emerald-600 px-5 py-3 text-sm font-semibold flex items-center gap-2 transition duration-200";
             
@@ -963,7 +1041,6 @@
             stocksContent.classList.add('hidden');
             monthlyContent.classList.add('hidden');
 
-            // เปิดแสดงผลเฉพาะแท็บที่ถูกเลือก
             if (tabId === 'daily') {
                 dailyBtn.className = activeClass;
                 dailyContent.classList.remove('hidden');
@@ -978,7 +1055,7 @@
             }
         }
 
-        // สลับประเภทรายการ (รายรับ / รายจ่าย) ในหน้าฟอร์ม
+        // สลับประเภทบันทึกรายวัน
         function toggleTxType(type) {
             activeTxType = type;
             const incomeLabel = document.getElementById('type-income-label');
@@ -995,7 +1072,7 @@
             updateCategoryOptions();
         }
 
-        // อัปเดตตัวเลือกหมวดหมู่ตามประเภทธุรกรรมที่เลือก
+        // อัปเดตตัวเลือกหมวดหมู่ตามประเภทธุรกรรม
         function updateCategoryOptions() {
             categorySelect.innerHTML = '';
             categories[activeTxType].forEach(cat => {
@@ -1006,23 +1083,14 @@
             });
         }
 
-        // บันทึกประวัติลง Local Storage
-        function saveToLocalStorage() {
-            localStorage.setItem('finflow_transactions', JSON.stringify(transactions));
-        }
-
-        function saveStocksToLocalStorage() {
-            localStorage.setItem('finflow_stocks', JSON.stringify(stocks));
-        }
-
-        // ค้นหาวัตถุหมวดหมู่เพื่อดึงชื่อและไอคอนไปแสดงผล
+        // ดึงข้อมูลหมวดหมู่
         function getCategoryDetails(type, catId) {
             const list = categories[type];
             const found = list.find(c => c.id === catId);
             return found || { name: 'อื่นๆ', icon: '📝', color: '#94a3b8' };
         }
 
-        // ฟังก์ชันคำนวณเงินและอัปเดตแผงแดชบอร์ดด้านบน
+        // คำนวณสรุปรายรับรายจ่ายและอัปเดตหน้าหลัก
         function updateDashboard() {
             let incomeTotal = 0;
             let expenseTotal = 0;
@@ -1041,7 +1109,6 @@
 
             const balance = incomeTotal - expenseTotal;
 
-            // ฟอร์แมตยอดเงิน
             totalIncomeEl.textContent = `${incomeTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
             totalExpenseEl.textContent = `${expenseTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
             totalBalanceEl.textContent = `${balance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿`;
@@ -1049,7 +1116,6 @@
             incomeCountEl.textContent = `${incomeCount} รายการ`;
             expenseCountEl.textContent = `${expenseCount} รายการ`;
 
-            // ปรับแต่งสีและข้อความย่อยของยอดคงเหลือสุทธิ
             if (balance < 0) {
                 totalBalanceEl.className = "text-3xl font-bold tracking-tight text-rose-400";
                 balanceSubtext.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-rose-400"></span> ยอดใช้จ่ายเกินรายรับ ควรระวังการใช้เงิน!`;
@@ -1061,15 +1127,14 @@
                 balanceSubtext.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> สถานะการเงินเป็นบวก ดีมาก!`;
             }
 
-            applyFilters(); // ทำการกรองและแสดงตารางตามเงื่อนไขปัจจุบัน
+            applyFilters();
             
-            // อัปเดตข้อมูลรายงานรายเดือนให้เป็นข้อมูลล่าสุดเสมอ
             if (!document.getElementById('monthly-tab-content').classList.contains('hidden')) {
                 updateMonthlyReports();
             }
         }
 
-        // กรองข้อมูลและอัปเดตตารางตามความต้องการของผู้ใช้
+        // กรองข้อมูลประวัติในตาราง
         function applyFilters() {
             const keyword = searchInput.value.toLowerCase().trim();
             const selectedType = filterTypeSelect.value;
@@ -1104,7 +1169,7 @@
             updateChartData();
         }
 
-        // เรนเดอร์ตารางรายการเดินบัญชี
+        // เรนเดอร์ตารางรายการธุรกรรม
         function renderTable(dataList) {
             tableBody.innerHTML = '';
 
@@ -1118,7 +1183,6 @@
             const sortedList = [...dataList].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             sortedList.forEach((t) => {
-                const origIndex = transactions.findIndex(orig => orig.id === t.id);
                 const row = document.createElement('tr');
                 row.className = "hover:bg-slate-50 transition duration-150";
 
@@ -1147,7 +1211,7 @@
                         </span>
                     </td>
                     <td class="px-4 py-3.5 text-center whitespace-nowrap">
-                        <button onclick="openDeleteModal(${origIndex})" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition duration-150" title="ลบรายการ">
+                        <button onclick="openDeleteModal('${t.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition duration-150" title="ลบรายการ">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -1158,9 +1222,10 @@
             });
         }
 
-        // ยื่นฟอร์มเพื่อบันทึกธุรกรรมใหม่
-        form.addEventListener('submit', function(e) {
+        // ส่งฟอร์มบันทึกธุรกรรมลง Firestore (แทน LocalStorage)
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            if (!auth.currentUser || !txCollectionRef) return;
 
             const description = descriptionInput.value.trim();
             const amount = parseFloat(amountInput.value);
@@ -1168,47 +1233,44 @@
             const category = categorySelect.value;
             const note = noteInput.value.trim();
 
-            if (!description || isNaN(amount) || amount <= 0 || !date) {
-                return;
+            if (!description || isNaN(amount) || amount <= 0 || !date) return;
+
+            const docId = generateId();
+            const newDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'transactions', docId);
+
+            try {
+                await setDoc(newDocRef, {
+                    description,
+                    type: activeTxType,
+                    amount,
+                    date,
+                    category,
+                    note: note || null
+                });
+                showToast("📝 บันทึกรายการสำเร็จ", "success");
+            } catch (err) {
+                console.error("Firestore save error:", err);
+                showToast("❌ เกิดข้อผิดพลาดในการบันทึก", "error");
             }
-
-            const newTx = {
-                id: generateId(),
-                description,
-                type: activeTxType,
-                amount,
-                date,
-                category,
-                note: note || null
-            };
-
-            transactions.push(newTx);
-            saveToLocalStorage();
-            updateDashboard();
 
             descriptionInput.value = '';
             amountInput.value = '';
             noteInput.value = '';
-            
-            const today = new Date().toISOString().split('T')[0];
-            dateInput.value = today;
+            dateInput.value = new Date().toISOString().split('T')[0];
         });
 
-        // ตัวช่วยฟอร์แมตค่าเงิน
+        // ฟอร์แมตสกุลเงิน
         function formatVal(value, currency = portfolioDisplayCurrency) {
             const sym = currency === 'THB' ? '฿' : '$';
-            // ตรวจสอบค่าติดลบเพื่อปัดเศษและการแสดงเครื่องหมายอย่างถูกต้อง
             const absoluteValue = Math.abs(value);
             const valStr = absoluteValue.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const sign = value < 0 ? '-' : '';
-            
             return currency === 'THB' ? `${sign}${valStr} ${sym}` : `${sign}${sym}${valStr}`;
         }
 
-        // สลับสกุลเงินหลักที่ต้องการแสดงผลพอร์ตการลงทุน
+        // จัดการแปลงการแสดงผลสกุลเงิน
         function changeDisplayCurrency(currency) {
             portfolioDisplayCurrency = currency;
-            
             const btnThb = document.getElementById('display-currency-thb');
             const btnUsd = document.getElementById('display-currency-usd');
 
@@ -1228,11 +1290,10 @@
                 document.getElementById('th-current-price').innerText = 'ราคาตลาดปัจจุบัน ($)';
                 document.getElementById('th-current-val').innerText = 'มูลค่ารวมปัจจุบัน ($)';
             }
-
             updateStockDashboard();
         }
 
-        // สลับสกุลเงินในการลงทุนในแบบฟอร์มกรอกข้อมูลหุ้น (แก้ไขบั๊กโดยใช้ DOM classList ป้องกันตำแหน่งของสไตล์พัง)
+        // สลับสกุลเงินซื้อขายในฟอร์มหุ้น
         function toggleStockCurrency(curr) {
             activeStockCurrency = curr;
             const thbLabel = document.getElementById('curr-thb-label');
@@ -1242,25 +1303,19 @@
             const inactiveClasses = ['bg-white', 'border-slate-200', 'text-slate-500', 'hover:bg-slate-50'];
 
             if (curr === 'THB') {
-                // จัดการแท็บ THB ให้แสดงสเตท active
                 activeClasses.forEach(cls => thbLabel.classList.add(cls));
                 inactiveClasses.forEach(cls => thbLabel.classList.remove(cls));
-
-                // จัดการแท็บ USD ให้แสดงสเตท inactive
                 inactiveClasses.forEach(cls => usdLabel.classList.add(cls));
                 activeClasses.forEach(cls => usdLabel.classList.remove(cls));
             } else {
-                // จัดการแท็บ USD ให้แสดงสเตท active
                 activeClasses.forEach(cls => usdLabel.classList.add(cls));
                 inactiveClasses.forEach(cls => usdLabel.classList.remove(cls));
-
-                // จัดการแท็บ THB ให้แสดงสเตท inactive
                 inactiveClasses.forEach(cls => thbLabel.classList.add(cls));
                 activeClasses.forEach(cls => thbLabel.classList.remove(cls));
             }
         }
 
-        // เปิดกล่องป๊อปอัปเพิ่ม/แก้ไขหุ้น
+        // เปิดป๊อปอัปพอร์ตหุ้น
         function openStockModal(stockId = null) {
             document.getElementById('stock-form').reset();
             document.getElementById('stock-edit-id').value = '';
@@ -1281,7 +1336,6 @@
                     document.getElementById('stock-modal-title').innerText = '✏️ แก้ไขข้อมูลหุ้นในพอร์ต';
                 }
             }
-
             document.getElementById('stock-modal').classList.remove('hidden');
         }
 
@@ -1289,9 +1343,10 @@
             document.getElementById('stock-modal').classList.add('hidden');
         }
 
-        // ยื่นฟอร์มบันทึกข้อมูลหุ้นใหม่หรือแก้ไข
+        // ส่งข้อมูลหุ้นขึ้นคลาวด์ Firestore
         document.getElementById('stock-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+            if (!auth.currentUser || !stockCollectionRef) return;
 
             const editId = document.getElementById('stock-edit-id').value;
             const symbol = document.getElementById('stock-symbol').value.trim().toUpperCase();
@@ -1301,21 +1356,16 @@
             const fee = parseFloat(document.getElementById('stock-fee').value);
             
             let curPriceInput = document.getElementById('stock-current-price').value;
-            
-            // หากไม่ได้พิมพ์ราคาตลาดปัจจุบันเข้ามา ระบบจะตั้งค่าเป็นราคาซื้อไว้ก่อน แล้วค่อยดึงข้อมูลใหม่อัตโนมัติ
             let currentPrice = curPriceInput !== '' ? parseFloat(curPriceInput) : buyPrice;
 
-            if (!symbol || isNaN(qty) || isNaN(buyPrice) || isNaN(fee)) {
-                return;
-            }
+            if (!symbol || isNaN(qty) || isNaN(buyPrice) || isNaN(fee)) return;
 
-            closeStockModal(); // ปิดป๊อปอัปทันทีเพื่อความรวดเร็วของ UX
+            closeStockModal();
 
             if (editId) {
-                const idx = stocks.findIndex(s => s.id === editId);
-                if (idx !== -1) {
-                    stocks[idx] = {
-                        ...stocks[idx],
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', editId);
+                    await updateDoc(docRef, {
                         symbol,
                         broker,
                         currency: activeStockCurrency,
@@ -1323,41 +1373,38 @@
                         buyPrice,
                         fee,
                         currentPrice
-                    };
-                    saveStocksToLocalStorage();
-                    updateStockDashboard();
-                    showToast("✏️ แก้ไขข้อมูลหุ้นในพอร์ตสำเร็จ กำลังอัปเดตราคาสด...", "success");
+                    });
+                    showToast("✏️ แก้ไขข้อมูลหุ้นสำเร็จ", "success");
                     
-                    // ดึงราคาสดมาทับใหม่อีกครั้งเบื้องหลัง
                     const livePrice = await fetchCurrentStockPrice(symbol, activeStockCurrency);
                     if (livePrice !== null) {
-                        stocks[idx].currentPrice = livePrice;
-                        saveStocksToLocalStorage();
-                        updateStockDashboard();
+                        await updateDoc(docRef, { currentPrice: livePrice });
                     }
+                } catch (err) {
+                    console.error("Firestore update stock error:", err);
                 }
             } else {
-                const newStock = {
-                    id: generateId(), 
-                    symbol,
-                    broker,
-                    currency: activeStockCurrency,
-                    qty,
-                    buyPrice,
-                    fee,
-                    currentPrice
-                };
-                stocks.push(newStock);
-                saveStocksToLocalStorage();
-                updateStockDashboard();
-                showToast("📈 บันทึกข้อมูลเรียบร้อยแล้ว กำลังดึงราคาล่าสุดอัตโนมัติ...", "success");
-                
-                // พยายามดึงราคาหุ้นจริงผ่าน API ทันทีหลังเพิ่มในโหมด Asynchronous
-                const livePrice = await fetchCurrentStockPrice(symbol, activeStockCurrency);
-                if (livePrice !== null) {
-                    newStock.currentPrice = livePrice;
-                    saveStocksToLocalStorage();
-                    updateStockDashboard();
+                try {
+                    const docId = generateId();
+                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', docId);
+                    
+                    await setDoc(docRef, {
+                        symbol,
+                        broker,
+                        currency: activeStockCurrency,
+                        qty,
+                        buyPrice,
+                        fee,
+                        currentPrice
+                    });
+                    showToast("📈 เพิ่มหุ้นเข้าพอร์ตสำเร็จ", "success");
+                    
+                    const livePrice = await fetchCurrentStockPrice(symbol, activeStockCurrency);
+                    if (livePrice !== null) {
+                        await updateDoc(docRef, { currentPrice: livePrice });
+                    }
+                } catch (err) {
+                    console.error("Firestore add stock error:", err);
                 }
             }
         });
@@ -1371,13 +1418,16 @@
                 document.getElementById('delete-stock-modal').classList.remove('hidden');
             }
 
-            document.getElementById('confirm-delete-stock-btn').onclick = function() {
-                if (deletingStockId) {
-                    stocks = stocks.filter(item => item.id !== deletingStockId);
-                    saveStocksToLocalStorage();
-                    updateStockDashboard();
+            document.getElementById('confirm-delete-stock-btn').onclick = async function() {
+                if (deletingStockId && auth.currentUser) {
+                    try {
+                        const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', deletingStockId);
+                        await deleteDoc(docRef);
+                        showToast("🗑️ ลบหุ้นออกจากพอร์ตเรียบร้อยแล้ว", "success");
+                    } catch (err) {
+                        console.error("Delete stock error:", err);
+                    }
                     closeDeleteStockModal();
-                    showToast("🗑️ ลบหุ้นออกจากพอร์ตเรียบร้อยแล้ว", "success");
                 }
             };
         }
@@ -1387,25 +1437,25 @@
             deletingStockId = null;
         }
 
-        // อัปเดตราคาหุ้นรายตัวแบบ inline จากหน้าตารางโดยตรง
-        function updateSingleStockPrice(id, newPrice) {
+        // อัปเดตราคาหุ้นรายตัวแบบด่วนจากตารางโดยตรง
+        async function updateSingleStockPrice(id, newPrice) {
             const parsed = parseFloat(newPrice);
-            if (!isNaN(parsed) && parsed >= 0) {
-                const idx = stocks.findIndex(s => s.id === id);
-                if (idx !== -1) {
-                    stocks[idx].currentPrice = parsed;
-                    saveStocksToLocalStorage();
-                    calculatePortfolioTotalsOnly();
+            if (!isNaN(parsed) && parsed >= 0 && auth.currentUser) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', id);
+                    await updateDoc(docRef, { currentPrice: parsed });
+                } catch (err) {
+                    console.error(err);
                 }
             }
         }
 
-        // คํานวณตัวเลขและอัปเดตสรุปพอร์ตหุ้นแบบเรียลไทม์ (คำนวณแยกกำไรรวมและขาดทุนรวมแยกตามเงื่อนไขอย่างอิสระ)
+        // คำนวณสรุปพอร์ตโฟลิโอและพอร์ตการลงทุน
         function calculatePortfolioTotalsOnly() {
             let totalCostInDisplayCurrency = 0;
             let currentValInDisplayCurrency = 0;
-            let totalWinningGainInDisplayCurrency = 0; // ยอดสะสมหุ้นที่เป็นกำไร (+) เท่านั้น
-            let totalLosingLossInDisplayCurrency = 0;  // ยอดสะสมหุ้นที่เป็นขาดทุน (-) เท่านั้น
+            let totalWinningGainInDisplayCurrency = 0;
+            let totalLosingLossInDisplayCurrency = 0;
 
             stocks.forEach(s => {
                 let costInDisplay = (s.buyPrice * s.qty) + s.fee;
@@ -1428,12 +1478,11 @@
                 }
                 currentValInDisplayCurrency += currentValInDisplay;
 
-                // วิเคราะห์กำไร/ขาดทุนรายตัว เพื่อรวมเฉพาะส่วนแบบแยกฝั่ง
                 const gainInDisplay = currentValInDisplay - costInDisplay;
                 if (gainInDisplay > 0) {
                     totalWinningGainInDisplayCurrency += gainInDisplay;
                 } else if (gainInDisplay < 0) {
-                    totalLosingLossInDisplayCurrency += gainInDisplay; // เป็นค่าลบ
+                    totalLosingLossInDisplayCurrency += gainInDisplay;
                 }
             });
 
@@ -1443,7 +1492,6 @@
             document.getElementById('portfolio-current-val').textContent = formatVal(currentValInDisplayCurrency);
             document.getElementById('portfolio-total-cost').textContent = formatVal(totalCostInDisplayCurrency);
             
-            // อัปเดตการแสดงผลแยกสัดส่วนกำไรรวมเฉพาะส่วนบวก และ ขาดทุนรวมเฉพาะส่วนลบ
             document.getElementById('portfolio-winning-sum').textContent = `+${formatVal(totalWinningGainInDisplayCurrency)}`;
             document.getElementById('portfolio-losing-sum').textContent = formatVal(totalLosingLossInDisplayCurrency);
 
@@ -1473,10 +1521,9 @@
             }
         }
 
-        // ประมวลผลและวาดตารางพอร์ตการลงทุนใหม่
+        // แสดงพอร์ตหุ้นบนหน้าจอ
         function updateStockDashboard() {
             calculatePortfolioTotalsOnly();
-            
             document.getElementById('total-stocks-held').textContent = `${stocks.length} รายการ`;
 
             const tbody = document.getElementById('stock-table-body');
@@ -1587,29 +1634,33 @@
             });
         }
 
-        // ยืนยันการลบรายการบัญชีปกติรายวันเดี่ยว
-        function openDeleteModal(index) {
-            deletingIndex = index;
-            const t = transactions[index];
-            document.getElementById('delete-target-desc').textContent = t.description;
-            document.getElementById('delete-modal').classList.remove('hidden');
+        // ป๊อปอัปยืนยันการลบรายการปกติ
+        function openDeleteModal(id) {
+            const t = transactions.find(item => item.id === id);
+            if (t) {
+                document.getElementById('delete-target-desc').textContent = t.description;
+                document.getElementById('delete-modal').classList.remove('hidden');
 
-            document.getElementById('confirm-delete-btn').onclick = function() {
-                if (deletingIndex !== null) {
-                    transactions.splice(deletingIndex, 1);
-                    saveToLocalStorage();
-                    updateDashboard();
-                    closeDeleteModal();
-                }
-            };
+                document.getElementById('confirm-delete-btn').onclick = async function() {
+                    if (auth.currentUser) {
+                        try {
+                            const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'transactions', id);
+                            await deleteDoc(docRef);
+                            showToast("🗑️ ลบรายการเรียบร้อย", "success");
+                        } catch (err) {
+                            console.error(err);
+                        }
+                        closeDeleteModal();
+                    }
+                };
+            }
         }
 
         function closeDeleteModal() {
             document.getElementById('delete-modal').classList.add('hidden');
-            deletingIndex = null;
         }
 
-        // ยืนยันการล้างฐานข้อมูลทั้งหมด
+        // จัดการหน้าต่างล้างฐานข้อมูลทั้งหมด
         function openClearModal() {
             document.getElementById('clear-modal').classList.remove('hidden');
         }
@@ -1618,45 +1669,58 @@
             document.getElementById('clear-modal').classList.add('hidden');
         }
 
-        function clearAllData() {
-            transactions = [];
-            stocks = [];
-            saveToLocalStorage();
-            saveStocksToLocalStorage();
-            updateDashboard();
-            updateStockDashboard();
-            localStorage.removeItem('finflow_stocks_last_updated');
-            updateLastUpdatedDisplay(null);
-            closeClearModal();
-            showToast("🗑️ ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว", "success");
+        // ล้างข้อมูลทั้งหมดทั้งระบบจาก Firebase (RULE 2 - ลูปและทำลายเป็นรายตัว)
+        async function clearAllData() {
+            if (!auth.currentUser) return;
+            showToast("⏳ กำลังทำการเคลียร์ฐานข้อมูลทั้งหมด...", "success");
+
+            try {
+                const promises = [];
+                transactions.forEach(t => {
+                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'transactions', t.id);
+                    promises.push(deleteDoc(docRef));
+                });
+                stocks.forEach(s => {
+                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'stocks', s.id);
+                    promises.push(deleteDoc(docRef));
+                });
+                await Promise.all(promises);
+                
+                localStorage.removeItem('finflow_stocks_last_updated');
+                updateLastUpdatedDisplay(null);
+                closeClearModal();
+                showToast("🗑️ ล้างข้อมูลคลาวด์ทั้งหมดสำเร็จแล้ว", "success");
+            } catch (err) {
+                console.error("Clear database failure:", err);
+                showToast("❌ เคลียร์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", "error");
+            }
         }
 
-        /* --- ฟังก์ชันแสดง Toast แจ้งเตือนสถานะต่างๆ บนหน้าจออย่างเป็นธรรมชาติ --- */
+        // ฟังก์ชันแสดง Toast แจ้งเตือนข้อความบนจออย่างสวยงาม
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.className = `fixed bottom-5 right-5 text-white px-5 py-3 rounded-xl shadow-lg z-50 text-sm transition-opacity duration-300 ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`;
             toast.innerText = message;
             document.body.appendChild(toast);
             
-            // ค่อยๆ หายไปใน 3 วินาที
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
             }, 3500);
         }
 
-        // สั่งคลิก input file ซ่อนอยู่
         function triggerCSVImport() {
             document.getElementById('import-csv-input').click();
         }
 
-        // จัดการและแกะข้อมูลไฟล์ CSV
-        function handleCSVImport(event) {
+        // แกะข้อมูล CSV และเพิ่มลง Firestore คลาวด์
+        async function handleCSVImport(event) {
+            if (!auth.currentUser) return;
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const text = e.target.result;
                 const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
                 
@@ -1716,15 +1780,29 @@
                 }
 
                 if (importedCount > 0) {
-                    transactions = [...transactions, ...newTransactions];
-                    saveToLocalStorage();
-                    updateDashboard();
-                    
-                    let successMsg = `✅ นำเข้าข้อมูลสำเร็จ ${importedCount} รายการ!`;
-                    if (duplicateCount > 0) {
-                        successMsg += ` (ข้ามข้อมูลซ้ำ ${duplicateCount} รายการ)`;
+                    try {
+                        const promises = newTransactions.map(tx => {
+                            const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'transactions', tx.id);
+                            return setDoc(docRef, {
+                                description: tx.description,
+                                type: tx.type,
+                                amount: tx.amount,
+                                date: tx.date,
+                                category: tx.category,
+                                note: tx.note
+                            });
+                        });
+                        await Promise.all(promises);
+
+                        let successMsg = `✅ นำเข้าข้อมูลสำเร็จ ${importedCount} รายการ!`;
+                        if (duplicateCount > 0) {
+                            successMsg += ` (ข้ามข้อมูลซ้ำ ${duplicateCount} รายการ)`;
+                        }
+                        showToast(successMsg, "success");
+                    } catch (err) {
+                        console.error(err);
+                        showToast("❌ ไม่สามารถนำเข้าข้อมูลได้สมบูรณ์", "error");
                     }
-                    showToast(successMsg, "success");
                 } else if (duplicateCount > 0) {
                     showToast(`⚠️ ทุกรายการซ้ำกับฐานข้อมูลเดิมแล้ว (ข้าม ${duplicateCount} รายการ)`, "error");
                 } else {
@@ -1761,6 +1839,7 @@
             return found ? found.id : (type === 'income' ? 'other-income' : 'other-expense');
         }
 
+        // ฟังก์ชันในการส่งออกข้อมูล (Export) เป็น CSV
         function exportData(format) {
             if (transactions.length === 0) {
                 showToast("⚠️ ไม่มีรายการธุรกรรมที่จะส่งออกข้อมูล", "error");
@@ -1790,6 +1869,7 @@
             }
         }
 
+        // เริ่มต้นการเรนเดอร์ Chart.js Doughnut รายสัดส่วนรายจ่าย
         function initChart() {
             const ctx = document.getElementById('categoryChart').getContext('2d');
             
@@ -1835,6 +1915,7 @@
             updateChartData();
         }
 
+        // อัปเดตข้อมูลกราฟรายสัดส่วน
         function updateChartData() {
             if (!categoryChart) return;
 
@@ -1874,6 +1955,7 @@
             categoryChart.update();
         }
 
+        // จัดการและจัดกลุ่มรายงานสำหรับรายงานสรุปรายเดือน
         function updateMonthlyReports() {
             const monthlyData = {};
 
@@ -1897,11 +1979,11 @@
 
             const sortedMonths = Object.keys(monthlyData).sort();
 
-            const tableBody = document.getElementById('monthly-summary-table-body');
+            const summaryTableBody = document.getElementById('monthly-summary-table-body');
             const noTableState = document.getElementById('no-monthly-table-state');
             const noChartState = document.getElementById('no-monthly-chart-data');
             
-            tableBody.innerHTML = '';
+            summaryTableBody.innerHTML = '';
 
             if (sortedMonths.length === 0) {
                 noTableState.classList.remove('hidden');
@@ -1956,7 +2038,7 @@
                         </span>
                     </td>
                 `;
-                tableBody.appendChild(row);
+                summaryTableBody.appendChild(row);
             });
 
             if (bestSavingsMonthKey) {
@@ -2031,6 +2113,28 @@
                 }
             });
         }
+
+        // เผยแพร่ฟังก์ชันเข้าสู่โกลบอลสโคป (Window) เพื่อรองรับ Event Listener บนหน้า HTML เดิมทั้งหมด
+        window.triggerCSVImport = triggerCSVImport;
+        window.handleCSVImport = handleCSVImport;
+        window.exportData = exportData;
+        window.openClearModal = openClearModal;
+        window.closeClearModal = closeClearModal;
+        window.clearAllData = clearAllData;
+        window.switchTab = switchTab;
+        window.toggleTxType = toggleTxType;
+        window.applyFilters = applyFilters;
+        window.handleManualRateChange = handleManualRateChange;
+        window.changeDisplayCurrency = changeDisplayCurrency;
+        window.refreshAllStockPrices = refreshAllStockPrices;
+        window.openStockModal = openStockModal;
+        window.closeStockModal = closeStockModal;
+        window.toggleStockCurrency = toggleStockCurrency;
+        window.openDeleteStockModal = openDeleteStockModal;
+        window.closeDeleteStockModal = closeDeleteStockModal;
+        window.updateSingleStockPrice = updateSingleStockPrice;
+        window.openDeleteModal = openDeleteModal;
+        window.closeDeleteModal = closeDeleteModal;
     </script>
 </body>
 </html>
